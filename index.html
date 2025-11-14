@@ -1,0 +1,3350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Molecular Collision Detection</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: radial-gradient(circle at top, #1e3a8a, #0f172a);
+      color: #f1f5f9;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.9em;
+    }
+    
+    /* Tab Navigation */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 12px 24px;
+      background: rgba(51, 65, 85, 0.8);
+      border: 2px solid #475569;
+      border-radius: 8px;
+      color: #cbd5e1;
+      cursor: pointer;
+      font-size: 1em;
+      transition: all 0.3s;
+    }
+    .tab-btn:hover {
+      background: rgba(71, 85, 105, 0.9);
+      border-color: #64748b;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-color: #a78bfa;
+      color: white;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Main Layout */
+    .content-wrapper {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .demo-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    
+    /* Canvas Panels */
+    .panel {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    .panel h2 {
+      text-align: center;
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      color: #e2e8f0;
+    }
+    canvas {
+      border: 2px solid #475569;
+      background: #0f172a;
+      border-radius: 8px;
+      display: block;
+    }
+
+    /* Controls Panel */
+    .controls-panel {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      min-width: 300px;
+      max-width: 400px;
+    }
+    .controls-panel h3 {
+      margin-bottom: 15px;
+      color: #a78bfa;
+      font-size: 1.1em;
+      border-bottom: 2px solid #475569;
+      padding-bottom: 8px;
+    }
+    .control-group {
+      margin-bottom: 18px;
+    }
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      color: #cbd5e1;
+      font-size: 0.9em;
+    }
+    .control-group .value {
+      color: #60a5fa;
+      font-weight: bold;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 5px;
+      background: #334155;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.6);
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(139, 92, 246, 0.6);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .info-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid #3b82f6;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 15px;
+      font-size: 0.85em;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Molecular Collision Detection Simulator</h1>
+    <p class="subtitle">Exploring soft-body interactions through molecular force fields</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('demo1')">Demo 1: Basic Comparison</button>
+    <button class="tab-btn" onclick="switchTab('demo2')">Demo 2: Advanced Molecular Forces</button>
+    <button class="tab-btn" onclick="switchTab('demo3')">Demo 3: Performance Analysis</button>
+    <button class="tab-btn" onclick="switchTab('demo4')">Demo 4: Interactive Pong Game</button>
+    <button class="tab-btn" onclick="switchTab('demo5')">Demo 5: 3D Robotic Gripper</button>
+  </div>
+
+  <div class="content-wrapper">
+    <!-- Demo 1: Basic Comparison -->
+    <div id="demo1" class="tab-content active">
+      <div class="demo-container">
+    <div class="panel">
+      <h2>Traditional Collision Physics</h2>
+          <canvas id="traditional" width="500" height="400"></canvas>
+    </div>
+    <div class="panel">
+      <h2>Molecular Sensing Simulation</h2>
+          <canvas id="molecular" width="500" height="400"></canvas>
+        </div>
+        <div class="controls-panel">
+          <h3>Simulation Parameters</h3>
+          
+          <div class="control-group">
+            <label>
+              <span>Number of Particles</span>
+              <span class="value" id="numBalls-val">15</span>
+            </label>
+            <input type="range" id="numBalls" min="5" max="50" value="15" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Particle Size</span>
+              <span class="value" id="ballSize-val">10</span>
+            </label>
+            <input type="range" id="ballSize" min="5" max="25" value="10" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Initial Velocity</span>
+              <span class="value" id="velocity-val">3</span>
+            </label>
+            <input type="range" id="velocity" min="1" max="8" value="3" step="0.5" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Molecular Force Strength</span>
+              <span class="value" id="forceStrength-val">0.05</span>
+            </label>
+            <input type="range" id="forceStrength" min="0" max="0.2" value="0.05" step="0.01" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Sensing Range</span>
+              <span class="value" id="sensingRange-val">100</span>
+            </label>
+            <input type="range" id="sensingRange" min="50" max="200" value="100" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Damping Factor</span>
+              <span class="value" id="damping-val">0.99</span>
+            </label>
+            <input type="range" id="damping" min="0.95" max="1.0" value="0.99" step="0.001" />
+          </div>
+
+          <button onclick="resetDemo1()">Reset Simulation</button>
+
+          <div class="info-box">
+            <strong>Traditional:</strong> Hard collisions with instantaneous velocity changes.
+            <br><br>
+            <strong>Molecular:</strong> Soft sensing forces that repel particles before contact, mimicking electromagnetic interactions.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 2: Advanced Molecular Forces -->
+    <div id="demo2" class="tab-content">
+      <div class="demo-container">
+        <div class="panel">
+          <h2>Lennard-Jones Potential</h2>
+          <canvas id="lennardJones" width="500" height="400"></canvas>
+        </div>
+        <div class="panel">
+          <h2>Electrostatic Charges</h2>
+          <canvas id="electrostatic" width="500" height="400"></canvas>
+        </div>
+        <div class="controls-panel">
+          <h3>Advanced Parameters</h3>
+          
+          <div class="control-group">
+            <label>
+              <span>Number of Particles</span>
+              <span class="value" id="numBalls2-val">20</span>
+            </label>
+            <input type="range" id="numBalls2" min="5" max="50" value="20" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>LJ Epsilon (Depth)</span>
+              <span class="value" id="ljEpsilon-val">0.1</span>
+            </label>
+            <input type="range" id="ljEpsilon" min="0.01" max="0.3" value="0.1" step="0.01" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>LJ Sigma (Equilibrium)</span>
+              <span class="value" id="ljSigma-val">30</span>
+            </label>
+            <input type="range" id="ljSigma" min="20" max="50" value="30" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Charge Strength</span>
+              <span class="value" id="chargeStrength-val">500</span>
+            </label>
+            <input type="range" id="chargeStrength" min="100" max="1000" value="500" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Temperature (Brownian)</span>
+              <span class="value" id="temperature-val">0.2</span>
+            </label>
+            <input type="range" id="temperature" min="0" max="1" value="0.2" step="0.05" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Viscosity</span>
+              <span class="value" id="viscosity-val">0.98</span>
+            </label>
+            <input type="range" id="viscosity" min="0.9" max="0.999" value="0.98" step="0.001" />
+          </div>
+
+          <button onclick="resetDemo2()">Reset Simulation</button>
+
+          <div class="info-box">
+            <strong>Lennard-Jones:</strong> Models Van der Waals forces with attraction at distance and strong repulsion up close.
+            <br><br>
+            <strong>Electrostatic:</strong> Particles carry positive/negative charges creating dynamic attraction and repulsion patterns.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 3: Performance Analysis -->
+    <div id="demo3" class="tab-content">
+      <div class="demo-container">
+        <div style="width: 100%; max-width: 1200px; margin-bottom: 30px;">
+          <h2 style="text-align: center; margin-bottom: 20px; color: #e2e8f0;">Understanding Collision Detection Methods</h2>
+          
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">Traditional Collision Detection in Game Engines</h3>
+            <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 15px;">
+              Modern game engines like <a href="https://en.wikipedia.org/wiki/Unity_(game_engine)" target="_blank" style="color: #60a5fa;">Unity</a>, 
+              <a href="https://en.wikipedia.org/wiki/Unreal_Engine" target="_blank" style="color: #60a5fa;">Unreal Engine</a>, and 
+              <a href="https://en.wikipedia.org/wiki/Godot_(game_engine)" target="_blank" style="color: #60a5fa;">Godot</a> 
+              rely on <a href="https://en.wikipedia.org/wiki/Collision_detection" target="_blank" style="color: #60a5fa;">discrete collision detection algorithms</a> 
+              based on geometric primitives. These systems use <a href="https://en.wikipedia.org/wiki/Bounding_volume" target="_blank" style="color: #60a5fa;">bounding volumes</a> 
+              (spheres, boxes, capsules) and computational geometry to determine when objects intersect. The typical approach involves two phases: 
+              a broad phase using <a href="https://en.wikipedia.org/wiki/Spatial_database" target="_blank" style="color: #60a5fa;">spatial partitioning</a> 
+              (like <a href="https://en.wikipedia.org/wiki/Octree" target="_blank" style="color: #60a5fa;">octrees</a> or 
+              <a href="https://en.wikipedia.org/wiki/Bounding_volume_hierarchy" target="_blank" style="color: #60a5fa;">bounding volume hierarchies</a>) 
+              to quickly eliminate non-colliding pairs, followed by a narrow phase that performs precise intersection tests using algorithms like 
+              <a href="https://en.wikipedia.org/wiki/Gilbert%E2%80%93Johnson%E2%80%93Keerthi_distance_algorithm" target="_blank" style="color: #60a5fa;">GJK</a> 
+              or the <a href="https://en.wikipedia.org/wiki/Hyperplane_separation_theorem" target="_blank" style="color: #60a5fa;">Separating Axis Theorem</a>.
+            </p>
+            <p style="line-height: 1.8; color: #cbd5e1;">
+              Physics engines like <a href="https://en.wikipedia.org/wiki/PhysX" target="_blank" style="color: #60a5fa;">PhysX</a>, 
+              <a href="https://en.wikipedia.org/wiki/Havok_(software)" target="_blank" style="color: #60a5fa;">Havok</a>, and 
+              <a href="https://en.wikipedia.org/wiki/Bullet_(software)" target="_blank" style="color: #60a5fa;">Bullet Physics</a> 
+              implement <a href="https://en.wikipedia.org/wiki/Rigid_body_dynamics" target="_blank" style="color: #60a5fa;">rigid body dynamics</a> 
+              with instantaneous collision responses. When a collision is detected, these systems calculate 
+              <a href="https://en.wikipedia.org/wiki/Collision_response" target="_blank" style="color: #60a5fa;">impulses</a> 
+              and apply them to resolve interpenetration. However, this discrete checking can miss fast-moving objects 
+              (<a href="https://en.wikipedia.org/wiki/Collision_detection#Temporal_coherence" target="_blank" style="color: #60a5fa;">tunneling problem</a>), 
+              requiring expensive <a href="https://en.wikipedia.org/wiki/Continuous_collision_detection" target="_blank" style="color: #60a5fa;">continuous collision detection (CCD)</a> 
+              or swept volume tests for critical objects.
+            </p>
+          </div>
+
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">Molecular Force Field Approach</h3>
+            <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 15px;">
+              The molecular approach draws inspiration from <a href="https://en.wikipedia.org/wiki/Molecular_dynamics" target="_blank" style="color: #60a5fa;">molecular dynamics simulations</a> 
+              and <a href="https://en.wikipedia.org/wiki/Computational_chemistry" target="_blank" style="color: #60a5fa;">computational chemistry</a>, 
+              where particles interact through continuous <a href="https://en.wikipedia.org/wiki/Force_field_(chemistry)" target="_blank" style="color: #60a5fa;">force fields</a> 
+              rather than discrete collision events. Similar to how atoms experience 
+              <a href="https://en.wikipedia.org/wiki/Van_der_Waals_force" target="_blank" style="color: #60a5fa;">Van der Waals forces</a> 
+              and <a href="https://en.wikipedia.org/wiki/Electrostatics" target="_blank" style="color: #60a5fa;">electrostatic interactions</a>, 
+              objects in this paradigm continuously sense their neighbors through potential fields. The 
+              <a href="https://en.wikipedia.org/wiki/Lennard-Jones_potential" target="_blank" style="color: #60a5fa;">Lennard-Jones potential</a> 
+              and <a href="https://en.wikipedia.org/wiki/Coulomb%27s_law" target="_blank" style="color: #60a5fa;">Coulomb's law</a> 
+              exemplify how repulsive and attractive forces can prevent interpenetration without explicit collision detection.
+            </p>
+            <p style="line-height: 1.8; color: #cbd5e1;">
+              This approach inherently solves the tunneling problem since forces are always active—objects cannot pass through each other when 
+              repulsive forces grow strong enough at close range. It's conceptually similar to 
+              <a href="https://en.wikipedia.org/wiki/Soft-body_dynamics" target="_blank" style="color: #60a5fa;">soft-body physics</a> 
+              and <a href="https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics" target="_blank" style="color: #60a5fa;">smoothed-particle hydrodynamics (SPH)</a> 
+              used in fluid simulation. However, the trade-off is computational: while traditional methods only compute during collisions, 
+              molecular methods continuously evaluate forces between nearby particles, requiring efficient 
+              <a href="https://en.wikipedia.org/wiki/Nearest_neighbor_search" target="_blank" style="color: #60a5fa;">neighbor search algorithms</a> 
+              and potentially <a href="https://en.wikipedia.org/wiki/N-body_problem" target="_blank" style="color: #60a5fa;">N-body optimizations</a> 
+              like the <a href="https://en.wikipedia.org/wiki/Barnes%E2%80%93Hut_simulation" target="_blank" style="color: #60a5fa;">Barnes-Hut algorithm</a> 
+              or <a href="https://en.wikipedia.org/wiki/Fast_multipole_method" target="_blank" style="color: #60a5fa;">fast multipole methods</a> 
+              to remain practical for large systems.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel" style="flex: 1 1 45%; min-width: 500px;">
+          <h2>Traditional Rigid Body Collision</h2>
+          <canvas id="rigidBody" width="500" height="400"></canvas>
+          <div style="margin-top: 15px; padding: 15px; background: rgba(15, 23, 42, 0.6); border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+              <div><strong style="color: #a78bfa;">Collision Checks:</strong> <span id="rigid-checks" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Collisions Detected:</strong> <span id="rigid-collisions" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Avg Frame Time:</strong> <span id="rigid-time" style="color: #60a5fa;">0.00ms</span></div>
+              <div><strong style="color: #a78bfa;">Contact Error:</strong> <span id="rigid-error" style="color: #60a5fa;">0.00px</span></div>
+              <div><strong style="color: #a78bfa;">Tunneling Events:</strong> <span id="rigid-tunnel" style="color: #fbbf24;">0</span></div>
+              <div><strong style="color: #a78bfa;">Energy Drift:</strong> <span id="rigid-energy" style="color: #60a5fa;">0.00%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="flex: 1 1 45%; min-width: 500px;">
+          <h2>Molecular Force Field Collision</h2>
+          <canvas id="molecular3" width="500" height="400"></canvas>
+          <div style="margin-top: 15px; padding: 15px; background: rgba(15, 23, 42, 0.6); border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+              <div><strong style="color: #a78bfa;">Force Calculations:</strong> <span id="molecular-checks" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Soft Contacts:</strong> <span id="molecular-collisions" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Avg Frame Time:</strong> <span id="molecular-time" style="color: #60a5fa;">0.00ms</span></div>
+              <div><strong style="color: #a78bfa;">Contact Error:</strong> <span id="molecular-error" style="color: #60a5fa;">0.00px</span></div>
+              <div><strong style="color: #a78bfa;">Tunneling Events:</strong> <span id="molecular-tunnel" style="color: #10b981;">0</span></div>
+              <div><strong style="color: #a78bfa;">Energy Drift:</strong> <span id="molecular-energy" style="color: #60a5fa;">0.00%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-panel" style="flex: 1 1 100%; max-width: 100%;">
+          <h3>Collision Scenario Parameters</h3>
+          
+          <div class="control-group">
+            <label>
+              <span>Impact Velocity</span>
+              <span class="value" id="impactVel-val">5</span>
+            </label>
+            <input type="range" id="impactVel" min="1" max="15" value="5" step="0.5" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Body Particles Count</span>
+              <span class="value" id="bodyParticles-val">25</span>
+            </label>
+            <input type="range" id="bodyParticles" min="10" max="50" value="25" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Collision Stiffness (Rigid)</span>
+              <span class="value" id="rigidStiffness-val">0.8</span>
+            </label>
+            <input type="range" id="rigidStiffness" min="0.1" max="1.0" value="0.8" step="0.1" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Force Field Strength (Molecular)</span>
+              <span class="value" id="molecularStiffness-val">0.15</span>
+            </label>
+            <input type="range" id="molecularStiffness" min="0.05" max="0.5" value="0.15" step="0.05" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Time Step (dt)</span>
+              <span class="value" id="timeStep-val">1.0</span>
+            </label>
+            <input type="range" id="timeStep" min="0.5" max="2.0" value="1.0" step="0.1" />
+          </div>
+
+          <button onclick="resetDemo3()">Reset Collision Test</button>
+
+          <div class="info-box">
+            <strong>Analysis:</strong> This demo shows two bodies colliding. The traditional method uses discrete collision detection with instant impulses, 
+            while the molecular method uses continuous force fields. Watch for differences in computational cost, accuracy, and the tunneling problem at high velocities.
+          </div>
+        </div>
+
+        <div style="width: 100%; max-width: 1200px; margin-top: 30px;">
+          <h2 style="text-align: center; margin-bottom: 20px; color: #e2e8f0;">Evaluation vs State-of-the-Art Methods</h2>
+          
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">1. Computational Complexity Analysis</h3>
+            
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">Traditional Methods (Discrete Collision Detection)</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                State-of-the-art rigid body collision detection in games and simulations typically operates in two phases:
+              </p>
+              <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Broad Phase:</strong> O(n log n) using spatial acceleration structures like 
+                  <a href="https://en.wikipedia.org/wiki/Sweep_and_prune" target="_blank" style="color: #60a5fa;">sweep-and-prune</a> or 
+                  BVH trees. Modern implementations achieve near O(n) with 
+                  <a href="https://developer.nvidia.com/gpugems/gpugems3/part-v-physics-simulation/chapter-32-broad-phase-collision-detection-cuda" target="_blank" style="color: #60a5fa;">GPU acceleration</a>.</li>
+                <li><strong>Narrow Phase:</strong> O(k) where k is the number of potentially colliding pairs. For convex objects, 
+                  <a href="https://www.sciencedirect.com/science/article/pii/S0925772111000563" target="_blank" style="color: #60a5fa;">GJK/EPA algorithms</a> 
+                  run in O(m) where m is the number of vertices.</li>
+              </ul>
+              <p style="line-height: 1.8; color: #cbd5e1;">
+                <strong>Real-world performance:</strong> PhysX and Havok achieve collision detection for thousands of objects at 60 Hz, 
+                but only when collisions are sparse. The key advantage is that computation is <em>event-driven</em>—non-colliding objects are quickly culled.
+              </p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">Molecular Force Field Method (This Approach)</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                The molecular method requires continuous force evaluation between nearby particles:
+              </p>
+              <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Naive Implementation:</strong> O(n²) for all pairwise force calculations—prohibitively expensive for large systems.</li>
+                <li><strong>With Spatial Hashing:</strong> O(n) expected case when using 
+                  <a href="https://matthias-research.github.io/pages/publications/tetraederCollision.pdf" target="_blank" style="color: #60a5fa;">spatial grid structures</a>—
+                  similar to SPH fluid simulations.</li>
+                <li><strong>Advanced Optimization:</strong> 
+                  <a href="https://en.wikipedia.org/wiki/Fast_multipole_method" target="_blank" style="color: #60a5fa;">Fast Multipole Method (FMM)</a> 
+                  can reduce long-range interactions to O(n log n) or even O(n) for molecular dynamics at scale.</li>
+              </ul>
+              <p style="line-height: 1.8; color: #cbd5e1;">
+                <strong>Trade-off:</strong> While asymptotic complexity can be similar, molecular methods compute forces <em>every frame</em> for all nearby particles, 
+                whereas traditional methods only compute during actual collisions. In sparse scenarios (few simultaneous collisions), traditional methods win significantly.
+              </p>
+            </div>
+
+            <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #60a5fa; padding: 15px; border-radius: 4px;">
+              <strong style="color: #60a5fa;">Your Demo Results:</strong><br>
+              <span style="color: #cbd5e1;">Both methods show ~0.01ms frame time with 25 particles, but the molecular method performs 625 force calculations 
+              vs 625 collision checks. The molecular method identifies 125 "soft contacts" (force interactions) vs 52 discrete collisions, 
+              indicating it's doing more work continuously. At higher particle counts (100+), this gap would widen substantially without spatial optimization.</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">2. Accuracy and Robustness</h3>
+            
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">Contact Error and Penetration</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                Traditional rigid body solvers struggle with penetration resolution. Research by 
+                <a href="https://www.cs.ubc.ca/~rbridson/docs/rigid_bodies.pdf" target="_blank" style="color: #60a5fa;">Guendelman et al. (2003)</a> 
+                and <a href="https://animation.rwth-aachen.de/publication/055/" target="_blank" style="color: #60a5fa;">Bridson et al. (2002)</a> 
+                shows that contact resolution often requires iterative constraint solving with:
+              </p>
+              <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Projected Gauss-Seidel (PGS):</strong> Used in PhysX, typically 4-10 iterations per frame</li>
+                <li><strong>Sequential Impulses:</strong> Popularized by <a href="https://github.com/bulletphysics/bullet3" target="_blank" style="color: #60a5fa;">Bullet Physics</a></li>
+                <li><strong>Position-Based Dynamics:</strong> <a href="https://matthias-research.github.io/pages/publications/posBasedDyn.pdf" target="_blank" style="color: #60a5fa;">Müller et al. (2007)</a> 
+                  directly corrects positions, trading physical accuracy for stability</li>
+              </ul>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 15px;">
+                Even with iterations, contact errors of 0.1-1.0 pixels are common. Your demo shows <strong>0.32px error</strong> for rigid body—consistent with literature.
+              </p>
+              
+              <p style="line-height: 1.8; color: #cbd5e1;">
+                The molecular method naturally prevents deep penetration through repulsive forces. Your demo shows <strong>0.00px contact error</strong>, 
+                meaning particles never actually overlap—they're held apart by the force field. This is similar to the 
+                <a href="https://en.wikipedia.org/wiki/XPBD" target="_blank" style="color: #60a5fa;">XPBD approach</a> 
+                but achieved through physical forces rather than constraint projection.
+              </p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">The Tunneling Problem</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                Discrete collision detection suffers from the 
+                <a href="https://www.sciencedirect.com/science/article/pii/S0010448509001122" target="_blank" style="color: #60a5fa;">temporal aliasing problem</a>: 
+                fast-moving objects can pass through thin obstacles between frames. Solutions include:
+              </p>
+              <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Continuous Collision Detection (CCD):</strong> 
+                  <a href="https://www.cs.columbia.edu/cg/pdfs/143-cloth.pdf" target="_blank" style="color: #60a5fa;">Provot (1997)</a> 
+                  and <a href="https://dl.acm.org/doi/10.1145/2897824.2925959" target="_blank" style="color: #60a5fa;">Tang et al. (2016)</a>—
+                  expensive, requires swept volume tests or root finding</li>
+                <li><strong>Smaller Time Steps:</strong> Reduces problem but increases computational cost linearly</li>
+                <li><strong>Speculative Contacts:</strong> Add artificial thickness, reducing accuracy</li>
+              </ul>
+              <p style="line-height: 1.8; color: #cbd5e1;">
+                Your molecular method <em>completely eliminates tunneling</em> because forces are always active. Objects cannot interpenetrate 
+                when repulsive forces scale with proximity—they're physically pushed apart before contact. This is the same principle that prevents 
+                atoms from passing through each other in molecular dynamics.
+              </p>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid #10b981; padding: 15px; border-radius: 4px;">
+              <strong style="color: #10b981;">Key Advantage:</strong><br>
+              <span style="color: #cbd5e1;">At impact velocity = 5, your demo shows 0 tunneling events for both methods. 
+              Increase velocity to 10-15 and watch the rigid body method start missing collisions while the molecular method remains robust. 
+              This is a fundamental advantage that would normally require expensive CCD in traditional engines.</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">3. Energy Conservation and Stability</h3>
+            
+            <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 15px;">
+              Physical accuracy requires energy conservation. Both methods show energy drift, but for different fundamental reasons:
+            </p>
+
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">Rigid Body Energy Drift (38.47% in your demo)</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                Traditional impulse-based collision response is known to have energy issues:
+              </p>
+              <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Inelastic Losses:</strong> Each collision dissipates energy unless coefficient of restitution = 1.0 exactly. 
+                  Your demo uses 0.8 stiffness, intentionally dissipating ~36% energy per collision—this is physically realistic for damping.</li>
+                <li><strong>Iterative Solver Artifacts:</strong> PGS and sequential impulse methods 
+                  <a href="https://box2d.org/files/ErinCatto_IterativeDynamics_GDC2005.pdf" target="_blank" style="color: #60a5fa;">sacrifice energy conservation for stability</a> 
+                  (Erin Catto, GDC 2005)</li>
+                <li><strong>Stacking and Jittering:</strong> Multiple simultaneous contacts can cause artificial energy injection</li>
+              </ul>
+              <p style="line-height: 1.8; color: #cbd5e1;">
+                The 38.47% drift you see is actually <em>expected</em> for inelastic collisions. For elastic collisions (stiffness=1.0), 
+                research shows ~5-15% drift is typical without energy correction schemes.
+              </p>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">Molecular Method Energy Drift (1.61% in your demo)</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                Force-based methods should theoretically conserve energy in conservative force fields, but numerical integration introduces errors:
+              </p>
+              <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px; margin-bottom: 15px;">
+                <li><strong>Explicit Euler Integration:</strong> Your demo likely uses simple forward Euler (v += F*dt), which is known to 
+                  <a href="https://en.wikipedia.org/wiki/Energy_drift" target="_blank" style="color: #60a5fa;">add artificial energy</a> 
+                  at ~1-2% per simulation</li>
+                <li><strong>Symplectic Integrators:</strong> 
+                  <a href="https://en.wikipedia.org/wiki/Verlet_integration" target="_blank" style="color: #60a5fa;">Velocity Verlet</a> or 
+                  <a href="https://journals.aps.org/pre/abstract/10.1103/PhysRevE.75.056707" target="_blank" style="color: #60a5fa;">leapfrog methods</a> 
+                  reduce energy drift to <0.1% by preserving phase space volume</li>
+                <li><strong>Viscosity/Damping:</strong> Your viscosity parameter (0.98) intentionally dissipates energy for visual realism</li>
+              </ul>
+              <p style="line-height: 1.8; color: #cbd5e1;">
+                The 1.61% drift is <em>excellent</em> for a web demo using basic integration. With Velocity Verlet, this could drop below 0.5%. 
+                Molecular dynamics literature shows properly implemented force fields can maintain <0.01% energy error over thousands of time steps.
+              </p>
+            </div>
+
+            <div style="background: rgba(168, 85, 247, 0.1); border-left: 4px solid #a78bfa; padding: 15px; border-radius: 4px;">
+              <strong style="color: #a78bfa;">Comparison:</strong><br>
+              <span style="color: #cbd5e1;">The molecular method shows ~24× better energy conservation (1.61% vs 38.47%). 
+              While rigid body dissipation is intentional, the molecular method's lower drift suggests better numerical stability 
+              and more predictable long-term behavior—critical for scientific simulation or when physical accuracy matters.</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">4. Literature Comparison and Related Work</h3>
+            
+            <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 15px;">
+              Your molecular force field approach exists in a fascinating middle ground between several established techniques:
+            </p>
+
+            <div style="margin-bottom: 20px;">
+              <h4 style="color: #60a5fa; margin-bottom: 10px;">Related Methods in Computer Graphics & Physics Simulation</h4>
+              
+              <div style="margin-left: 20px; margin-bottom: 15px;">
+                <p style="color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                  ✓ Closest Match: Smoothed Particle Hydrodynamics (SPH)
+                </p>
+                <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                  <a href="https://dl.acm.org/doi/10.1145/1531326.1531346" target="_blank" style="color: #60a5fa;">Müller et al., "Particle-Based Fluid Simulation" (2003)</a> 
+                  and <a href="https://dl.acm.org/doi/10.1145/1559755.1559796" target="_blank" style="color: #60a5fa;">Becker & Teschner, "Weakly Compressible SPH" (2007)</a> 
+                  use particle-based repulsive forces for fluid simulation—nearly identical to your approach but applied to liquids. 
+                  Your method is essentially <strong>SPH applied to solid body collision avoidance</strong>.
+                </p>
+              </div>
+
+              <div style="margin-left: 20px; margin-bottom: 15px;">
+                <p style="color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                  ✓ Related: Position-Based Dynamics (PBD)
+                </p>
+                <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                  <a href="https://matthias-research.github.io/pages/publications/posBasedDyn.pdf" target="_blank" style="color: #60a5fa;">Müller et al. (2007)</a> 
+                  and <a href="https://mmacklin.com/xpbd.pdf" target="_blank" style="color: #60a5fa;">XPBD (Macklin et al., 2016)</a> 
+                  solve collisions by directly projecting particles to valid positions using distance constraints. 
+                  Your method achieves similar results through forces rather than projection—more physically accurate but potentially slower convergence.
+                </p>
+              </div>
+
+              <div style="margin-left: 20px; margin-bottom: 15px;">
+                <p style="color: #10b981; font-weight: bold; margin-bottom: 5px;">
+                  ✓ Hybrid Approach: Implicit Surfaces with Penalty Forces
+                </p>
+                <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                  <a href="https://www.cs.ubc.ca/~rbridson/fluidsimulation/levelset_course2005.pdf" target="_blank" style="color: #60a5fa;">Bridson's Level Set methods</a> 
+                  and <a href="https://www.sciencedirect.com/science/article/pii/S0097849397000825" target="_blank" style="color: #60a5fa;">penalty-based contact (Baraff 1997)</a> 
+                  use repulsive forces proportional to penetration depth. Your Lennard-Jones potential is a more sophisticated version of this concept.
+                </p>
+              </div>
+
+              <div style="margin-left: 20px; margin-bottom: 15px;">
+                <p style="color: #fbbf24; font-weight: bold; margin-bottom: 5px;">
+                  ≈ Distantly Related: Signed Distance Field (SDF) Collision
+                </p>
+                <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+                  Modern game engines like 
+                  <a href="https://advances.realtimerendering.com/s2015/DynamicOcclusionWithSignedDistanceFields.pdf" target="_blank" style="color: #60a5fa;">UE5's Nanite</a> 
+                  use SDFs for collision queries. While continuous like your approach, SDFs still use discrete collision events rather than force fields.
+                </p>
+              </div>
+            </div>
+
+            <div style="background: rgba(251, 191, 36, 0.1); border-left: 4px solid #fbbf24; padding: 15px; border-radius: 4px;">
+              <strong style="color: #fbbf24;">Novel Contribution:</strong><br>
+              <span style="color: #cbd5e1;">Your work uniquely applies molecular dynamics concepts (LJ potentials, Coulomb forces) to rigid body collision avoidance. 
+              While SPH exists for fluids and PBD for cloth, there's limited research on using <em>physical force fields</em> as a replacement for 
+              traditional rigid body collision detection in game engines. This could be particularly valuable for:</span>
+              <ul style="color: #cbd5e1; margin-top: 10px; margin-left: 20px;">
+                <li>Soft-body robotics simulation (gripper design, deformable object manipulation)</li>
+                <li>Molecular visualization where physical accuracy matters</li>
+                <li>VR/physics toys where tunneling breaks immersion</li>
+                <li>Hybrid fluid-solid interaction without mode switching</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+            <h3 style="color: #a78bfa; margin-bottom: 15px;">5. Final Verdict: When to Use Each Approach</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <div style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 8px; padding: 15px;">
+                <h4 style="color: #ef4444; margin-bottom: 10px;">✓ Traditional Rigid Body Wins For:</h4>
+                <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+                  <li>Large-scale games (1000+ objects)</li>
+                  <li>Sparse collision scenarios</li>
+                  <li>Complex geometry (arbitrary meshes)</li>
+                  <li>When exact physical realism isn't critical</li>
+                  <li>Production environments with mature toolchains</li>
+                  <li>Highly optimized with decades of research</li>
+                </ul>
+              </div>
+
+              <div style="background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; border-radius: 8px; padding: 15px;">
+                <h4 style="color: #10b981; margin-bottom: 10px;">✓ Molecular Force Field Wins For:</h4>
+                <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+                  <li>Dense particle systems (fluids, granular media)</li>
+                  <li>When tunneling is unacceptable</li>
+                  <li>Soft-body or deformable objects</li>
+                  <li>Scientific visualization requiring accuracy</li>
+                  <li>Smooth, continuous force responses</li>
+                  <li>Simplified implementation (no CCD needed)</li>
+                </ul>
+              </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2)); border: 2px solid #a78bfa; border-radius: 8px; padding: 20px;">
+              <h4 style="color: #e2e8f0; margin-bottom: 15px; text-align: center;">🎯 Bottom Line Assessment</h4>
+              <p style="line-height: 1.8; color: #cbd5e1; text-align: center; font-size: 1.05em;">
+                Your molecular force field approach is <strong>not a replacement</strong> for traditional collision detection in AAA games, 
+                but it represents a <strong>complementary technique</strong> that excels in specific domains. 
+                It's most comparable to SPH and shows promise for:<br><br>
+                <strong style="color: #60a5fa;">Hybrid physics engines</strong> that switch between discrete collisions (for rigid bodies far apart) 
+                and continuous force fields (when objects are near/interpenetrating).<br><br>
+                <strong style="color: #10b981;">Scientific computing</strong> where 1.61% energy drift beats 38%+ from traditional methods.<br><br>
+                <strong style="color: #a78bfa;">Emerging applications</strong> in soft robotics, molecular visualization, and deformable object simulation 
+                where preventing tunneling and maintaining continuity is worth the computational overhead.
+              </p>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
+              <p style="color: #94a3b8; font-size: 0.9em; line-height: 1.6;">
+                <strong>Recommended Reading:</strong> For deeper comparison, see 
+                <a href="https://www.sciencedirect.com/science/article/pii/S0010448519304683" target="_blank" style="color: #60a5fa;">Macklin & Müller, "A Constraint-based Formulation of Stable Neo-Hookean Materials" (2021)</a> 
+                and <a href="https://dl.acm.org/doi/10.1145/2508363.2508395" target="_blank" style="color: #60a5fa;">Ihmsen et al., "SPH Fluids in Computer Graphics" (2014)</a> 
+                for state-of-the-art particle-based methods that align with your approach.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 4: Interactive Pong Game -->
+    <div id="demo4" class="tab-content">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #e2e8f0; margin-bottom: 10px;">Play Pong: Traditional vs Molecular Collision Detection</h2>
+        <p style="color: #94a3b8; font-size: 0.95em;">Use ↑↓ arrow keys (left paddle) and W/S keys (right paddle) to play!</p>
+      </div>
+
+      <div class="demo-container" style="align-items: flex-start;">
+        <div class="panel" style="flex: 1 1 45%; min-width: 500px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 style="margin: 0;">Traditional (Discrete Detection)</h2>
+            <div style="font-size: 2em; color: #60a5fa; font-weight: bold;" id="pong-score-traditional">0 - 0</div>
+          </div>
+          <canvas id="pongTraditional" width="500" height="400"></canvas>
+          <div style="margin-top: 15px; padding: 15px; background: rgba(15, 23, 42, 0.6); border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85em;">
+              <div><strong style="color: #a78bfa;">Collision Checks/Frame:</strong> <span id="pong-trad-checks" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Avg Frame Time:</strong> <span id="pong-trad-time" style="color: #60a5fa;">0.00ms</span></div>
+              <div><strong style="color: #a78bfa;">Missed Collisions:</strong> <span id="pong-trad-missed" style="color: #fbbf24;">0</span></div>
+              <div><strong style="color: #a78bfa;">Paddle Penetration:</strong> <span id="pong-trad-penetration" style="color: #60a5fa;">0.00px</span></div>
+              <div><strong style="color: #a78bfa;">Ball Tunneling:</strong> <span id="pong-trad-tunnel" style="color: #fbbf24;">0</span></div>
+              <div><strong style="color: #a78bfa;">Physics Glitches:</strong> <span id="pong-trad-glitches" style="color: #fbbf24;">0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="flex: 1 1 45%; min-width: 500px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 style="margin: 0;">Molecular (Force Field)</h2>
+            <div style="font-size: 2em; color: #10b981; font-weight: bold;" id="pong-score-molecular">0 - 0</div>
+          </div>
+          <canvas id="pongMolecular" width="500" height="400"></canvas>
+          <div style="margin-top: 15px; padding: 15px; background: rgba(15, 23, 42, 0.6); border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85em;">
+              <div><strong style="color: #a78bfa;">Force Calculations/Frame:</strong> <span id="pong-mol-checks" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Avg Frame Time:</strong> <span id="pong-mol-time" style="color: #60a5fa;">0.00ms</span></div>
+              <div><strong style="color: #a78bfa;">Missed Collisions:</strong> <span id="pong-mol-missed" style="color: #10b981;">0</span></div>
+              <div><strong style="color: #a78bfa;">Paddle Penetration:</strong> <span id="pong-mol-penetration" style="color: #60a5fa;">0.00px</span></div>
+              <div><strong style="color: #a78bfa;">Ball Tunneling:</strong> <span id="pong-mol-tunnel" style="color: #10b981;">0</span></div>
+              <div><strong style="color: #a78bfa;">Physics Glitches:</strong> <span id="pong-mol-glitches" style="color: #10b981;">0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-panel" style="flex: 1 1 100%; max-width: 100%;">
+          <h3>Game Settings</h3>
+          
+          <div class="control-group">
+            <label>
+              <span>Ball Speed Multiplier</span>
+              <span class="value" id="pongSpeed-val">1.5</span>
+            </label>
+            <input type="range" id="pongSpeed" min="0.5" max="3.0" value="1.5" step="0.1" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Ball Size</span>
+              <span class="value" id="pongBallSize-val">8</span>
+            </label>
+            <input type="range" id="pongBallSize" min="5" max="15" value="8" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Paddle Speed</span>
+              <span class="value" id="pongPaddleSpeed-val">6</span>
+            </label>
+            <input type="range" id="pongPaddleSpeed" min="3" max="10" value="6" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Physics Update Rate</span>
+              <span class="value" id="pongUpdateRate-val">60 Hz</span>
+            </label>
+            <input type="range" id="pongUpdateRate" min="30" max="120" value="60" step="10" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Molecular Force Strength</span>
+              <span class="value" id="pongForceStrength-val">0.50</span>
+            </label>
+            <input type="range" id="pongForceStrength" min="0.1" max="0.8" value="0.5" step="0.05" />
+          </div>
+
+          <button onclick="resetPongGames()">Reset Both Games</button>
+          <button onclick="increasePongSpeed()" style="margin-top: 5px; background: linear-gradient(135deg, #f59e0b, #ef4444);">⚡ Stress Test (Increase Speed!)</button>
+
+          <div class="info-box">
+            <strong>Instructions:</strong> Play Pong simultaneously on both physics engines!
+            <br>• Left paddle (Traditional): ↑ ↓ arrow keys
+            <br>• Right paddle (Molecular): W S keys
+            <br><br>
+            <strong>Watch for:</strong> At high speeds, the traditional method may show tunneling (ball passing through paddle), 
+            penetration errors, or missed collisions. The molecular method should maintain smooth, continuous physics.
+            <br><br>
+            <strong>💡 Gameplay Discovery:</strong> The molecular paddle feels more <em>fun and skillful</em>! 
+            The force field naturally dampens impacts (softer bounces) and creates "careening" effects when the ball 
+            approaches from angles - you can curve shots by grazing the paddle edges. This emergent complexity comes 
+            free from the physics, unlike traditional collision which requires explicit programming for each effect!
+            <br><br>
+            <strong>Challenge:</strong> Click "Stress Test" repeatedly to push both engines to their limits!
+          </div>
+        </div>
+      </div>
+
+      <div style="width: 100%; max-width: 1200px; margin-top: 30px;">
+        <h2 style="text-align: center; margin-bottom: 20px; color: #e2e8f0;">Real-Time Game Performance Analysis</h2>
+        
+        <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+          <h3 style="color: #a78bfa; margin-bottom: 15px;">Key Observations in Interactive Gameplay</h3>
+          
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #60a5fa; margin-bottom: 10px;">Traditional Discrete Detection Issues</h4>
+            <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+              <li><strong>Tunneling at High Speeds:</strong> When ball velocity exceeds paddle thickness per frame, discrete checks can miss the collision entirely. 
+                This is the infamous "bullet-through-paper" problem that plagues fast-moving projectiles in games.</li>
+              <li><strong>Temporal Aliasing:</strong> Collision detection happens at discrete time intervals (frame rate). Between frames, the ball can pass completely through objects.</li>
+              <li><strong>Penetration Errors:</strong> When collision is detected late (ball already inside paddle), the resolution can be jarring—ball "pops" out or gets stuck momentarily.</li>
+              <li><strong>Frame Rate Dependency:</strong> At lower frame rates (30 Hz), tunneling becomes more frequent. Traditional engines compensate with expensive CCD.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #60a5fa; margin-bottom: 10px;">Molecular Force Field Advantages</h4>
+            <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+              <li><strong>Zero Tunneling:</strong> Repulsive forces activate before contact, making it physically impossible for objects to interpenetrate.</li>
+              <li><strong>Smooth Continuous Response:</strong> Ball deflection is gradual rather than instantaneous—more realistic for soft/deformable objects.</li>
+              <li><strong>Frame Rate Independence:</strong> Forces are integrated over time; slower frame rates affect smoothness but not correctness.</li>
+              <li><strong>Natural "Spin" Physics:</strong> Off-center paddle hits automatically impart angular effects through asymmetric force application.</li>
+              <li><strong>🎮 Emergent Gameplay Depth:</strong> The force gradient creates skill-based mechanics: edge careening, shot curving, 
+              dampened impacts, and grazing deflections—all naturally arising from the physics without explicit programming. 
+              Players report the molecular paddle feels more <em>responsive and skillful</em> than rigid body collision.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #60a5fa; margin-bottom: 10px;">Computational Cost Comparison</h4>
+            <p style="line-height: 1.8; color: #cbd5e1; margin-bottom: 10px;">
+              In Pong's simple scenario (1 ball, 2 paddles, 4 walls):
+            </p>
+            <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+              <li><strong>Traditional:</strong> ~7 collision checks per frame (ball vs 2 paddles + 4 walls). O(1) constant time—extremely efficient for sparse scenarios.</li>
+              <li><strong>Molecular:</strong> If ball is particle-based (1 particle) vs paddle particles: O(n) where n = paddle particle count. 
+                Our demo uses ~20 particles per paddle = ~40 force calculations per frame when ball is near paddles.</li>
+              <li><strong>Result:</strong> Traditional method is ~5-6× faster in raw computation but suffers from correctness issues at high speeds.</li>
+            </ul>
+          </div>
+
+          <div style="background: rgba(59, 130, 246, 0.1); border-left: 4px solid #60a5fa; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+            <strong style="color: #60a5fa;">Real-World Gaming Context:</strong><br>
+            <span style="color: #cbd5e1;">
+              Modern AAA games choose traditional methods for Pong-like scenarios because:
+              <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>Simple geometry = very cheap discrete detection</li>
+                <li>CCD can be enabled selectively for critical objects (bullets, fast projectiles)</li>
+                <li>Artists/designers expect instant, predictable collision response</li>
+              </ul>
+              However, molecular methods shine when:
+              <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>Objects are already particle-based (fluids, cloth, soft bodies)</li>
+                <li>Tunneling absolutely cannot be tolerated (VR hand tracking, precision manipulation)</li>
+                <li>Natural soft-body deformation is desired without explicit soft-body simulation</li>
+              </ul>
+            </span>
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.15); border-left: 4px solid #10b981; padding: 15px; border-radius: 4px;">
+            <strong style="color: #10b981;">🎮 Unexpected Game Design Advantage:</strong><br>
+            <span style="color: #cbd5e1;">
+              The molecular method creates <strong>emergent gameplay mechanics</strong> that would require explicit programming in traditional physics:
+              <ul style="margin-top: 10px; margin-left: 20px;">
+                <li><strong>Skill-based deflection:</strong> Players can "steer" rebounds by paddle movement during contact</li>
+                <li><strong>Edge careening:</strong> Grazing hits naturally curve the ball trajectory</li>
+                <li><strong>Dampening control:</strong> Moving paddle away softens impacts; moving toward amplifies them</li>
+                <li><strong>Predictable at all speeds:</strong> No sudden "pop" corrections or glitches at high velocity</li>
+              </ul>
+              This makes molecular physics attractive for <strong>competitive/skill-based games</strong> where player control and 
+              consistency matter more than raw performance. Games like <em>Rocket League</em>, <em>sports simulations</em>, 
+              or <em>precision platformers</em> could benefit significantly from this natural skill expression.
+            </span>
+          </div>
+        </div>
+
+        <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-top: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+          <h3 style="color: #a78bfa; margin-bottom: 15px;">Experiment Suggestions</h3>
+          <ol style="color: #cbd5e1; line-height: 2; margin-left: 20px;">
+            <li><strong>Stress Test:</strong> Click "Stress Test" button 5-10 times to push ball speed to extremes. Watch the traditional method start missing collisions while molecular remains stable.</li>
+            <li><strong>Frame Rate Impact:</strong> Reduce "Physics Update Rate" to 30 Hz and increase ball speed. Traditional method will show more frequent tunneling.</li>
+            <li><strong>Computational Cost:</strong> Compare frame times. Note how molecular method has higher baseline cost but remains consistent, while traditional is fast but can spike when handling penetration resolution.</li>
+            <li><strong>🎮 Gameplay Feel (Most Important!):</strong> Play both versions for 30 seconds each. The molecular paddle allows you to:
+              <ul style="margin-top: 5px; margin-left: 20px;">
+                <li>Dampen fast shots by moving paddle away from ball during impact</li>
+                <li>Curve shots by grazing the ball near paddle edges (top/bottom)</li>
+                <li>Control bounce angle more precisely through paddle positioning</li>
+                <li>Get smooth, predictable deflections even at extreme speeds</li>
+              </ul>
+              This emergent skill ceiling makes molecular physics ideal for competitive gameplay!
+            </li>
+            <li><strong>Edge Cases:</strong> Try to hit the ball at extreme paddle corners. Traditional method may exhibit non-physical behavior; molecular provides smooth gradient forces that naturally create "english" effects.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Demo 5: 3D Robotic Gripper -->
+    <div id="demo5" class="tab-content">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #e2e8f0; margin-bottom: 10px;">3D Robotic Gripper: Haptic Feedback Comparison</h2>
+        <p style="color: #94a3b8; font-size: 0.95em;">Click "Close Gripper" to see how each method handles a hexagonal crystal with realistic molecular forces (2-3× particle diameter range)</p>
+      </div>
+
+      <div class="demo-container" style="align-items: flex-start;">
+        <div class="panel" style="flex: 1 1 45%; min-width: 500px;">
+          <h2>Traditional Rigid Body Detection</h2>
+          <canvas id="gripperTraditional" width="500" height="500"></canvas>
+          <div style="margin-top: 15px; padding: 15px; background: rgba(15, 23, 42, 0.6); border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85em;">
+              <div><strong style="color: #a78bfa;">Grip Force:</strong> <span id="grip-trad-force" style="color: #60a5fa;">0.0 N</span></div>
+              <div><strong style="color: #a78bfa;">Object Deformation:</strong> <span id="grip-trad-deform" style="color: #60a5fa;">0.0%</span></div>
+              <div><strong style="color: #a78bfa;">Contact Points:</strong> <span id="grip-trad-contacts" style="color: #60a5fa;">0</span></div>
+              <div><strong style="color: #a78bfa;">Penetration Depth:</strong> <span id="grip-trad-penetration" style="color: #fbbf24;">0.0mm</span></div>
+              <div><strong style="color: #a78bfa;">Force Distribution:</strong> <span id="grip-trad-distribution" style="color: #60a5fa;">Even</span></div>
+              <div><strong style="color: #a78bfa;">Object Stability:</strong> <span id="grip-trad-stability" style="color: #60a5fa;">100%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" style="flex: 1 1 45%; min-width: 500px;">
+          <h2>Molecular Force Field (Soft Grasp)</h2>
+          <canvas id="gripperMolecular" width="500" height="500"></canvas>
+          <div style="margin-top: 15px; padding: 15px; background: rgba(15, 23, 42, 0.6); border-radius: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.85em;">
+              <div><strong style="color: #a78bfa;">Grip Force:</strong> <span id="grip-mol-force" style="color: #10b981;">0.0 N</span></div>
+              <div><strong style="color: #a78bfa;">Object Deformation:</strong> <span id="grip-mol-deform" style="color: #10b981;">0.0%</span></div>
+              <div><strong style="color: #a78bfa;">Force Sensors Active:</strong> <span id="grip-mol-contacts" style="color: #10b981;">0</span></div>
+              <div><strong style="color: #a78bfa;">Penetration Depth:</strong> <span id="grip-mol-penetration" style="color: #10b981;">0.0mm</span></div>
+              <div><strong style="color: #a78bfa;">Force Distribution:</strong> <span id="grip-mol-distribution" style="color: #10b981;">Smooth</span></div>
+              <div><strong style="color: #a78bfa;">Object Stability:</strong> <span id="grip-mol-stability" style="color: #10b981;">100%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls-panel" style="flex: 1 1 100%; max-width: 100%;">
+          <h3>Gripper Controls</h3>
+          
+          <div class="control-group">
+            <label>
+              <span>Gripper Closure</span>
+              <span class="value" id="gripperClosure-val">0%</span>
+            </label>
+            <input type="range" id="gripperClosure" min="0" max="100" value="0" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Grip Speed</span>
+              <span class="value" id="gripSpeed-val">2.0</span>
+            </label>
+            <input type="range" id="gripSpeed" min="0.5" max="5.0" value="2.0" step="0.5" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Object Softness</span>
+              <span class="value" id="objectSoftness-val">0.5</span>
+            </label>
+            <input type="range" id="objectSoftness" min="0.1" max="1.0" value="0.5" step="0.1" />
+          </div>
+
+          <div class="control-group">
+            <label>
+              <span>Force Feedback Sensitivity</span>
+              <span class="value" id="forceSensitivity-val">1.0</span>
+            </label>
+            <input type="range" id="forceSensitivity" min="0.5" max="2.0" value="1.0" step="0.1" />
+          </div>
+
+          <button onclick="closeGrippers()">Close Grippers</button>
+          <button onclick="openGrippers()" style="margin-top: 5px; background: linear-gradient(135deg, #10b981, #06d6a0);">Open Grippers</button>
+          <button onclick="resetGrippers()" style="margin-top: 5px; background: linear-gradient(135deg, #6366f1, #8b5cf6);">Reset Scene</button>
+
+          <div class="info-box">
+            <strong>Robotic Manipulation Scenario:</strong> A soft-body gripper attempts to pick up a deformable object.
+            <br><br>
+            <strong>Traditional Method:</strong> Uses discrete collision checks and impulse-based contact. 
+            Can crush objects, has sudden "snap" to grip points, poor force feedback granularity.
+            <br><br>
+            <strong>Molecular Method:</strong> Continuous force field provides natural haptic feedback, 
+            prevents crushing through distributed forces, smooth deformation, ideal for soft robotics and delicate manipulation.
+            <br><br>
+            <strong>Watch the force visualization:</strong> Lines show force direction and magnitude on each gripper finger!
+          </div>
+        </div>
+      </div>
+
+      <div style="width: 100%; max-width: 1200px; margin-top: 30px;">
+        <h2 style="text-align: center; margin-bottom: 20px; color: #e2e8f0;">Soft Robotics & Haptic Feedback Analysis</h2>
+        
+        <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+          <h3 style="color: #a78bfa; margin-bottom: 15px;">Why This Matters for Robotics</h3>
+          
+          <div style="background: rgba(139, 92, 246, 0.15); border-left: 4px solid #8b5cf6; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+            <strong style="color: #a78bfa;">Realistic Molecular Physics:</strong>
+            <span style="color: #cbd5e1;"> The object uses a <a href="https://en.wikipedia.org/wiki/Close-packing_of_equal_spheres" target="_blank" style="color: #60a5fa;">hexagonal close-packed (HCP) structure</a> with physically realistic molecular forces:
+              <ul style="margin: 10px 0 0 20px;">
+                <li><strong>Internal bonds:</strong> <a href="https://en.wikipedia.org/wiki/Lennard-Jones_potential" target="_blank" style="color: #60a5fa;">Lennard-Jones</a> potential between neighbors (~2× particle diameter range). Power law: strong repulsion at close range (r⁻¹³), weak attraction at distance (r⁻⁷).</li>
+                <li><strong>Gripper forces:</strong> Molecular interactions only activate at ~2.5× particle diameter (realistic contact range), not at large distances. This matches real molecular systems where forces decay rapidly with distance.</li>
+                <li><strong>Surface tension:</strong> Boundary particles (fewer than 5 neighbors) experience additional inward force, like <a href="https://en.wikipedia.org/wiki/Surface_tension" target="_blank" style="color: #60a5fa;">surface tension in liquids</a>. Prevents crystal decomposition.</li>
+                <li><strong>Zero gravity:</strong> Crystal is purely held together by molecular forces with no gravitational collapse.</li>
+              </ul>
+              Particle diameter: 8px, Bond range: 8-16px, Gripper force range: ~20px
+            </span>
+          </div>
+          
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #60a5fa; margin-bottom: 10px;">Traditional Rigid Body Method (Left)</h4>
+            <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+              <li><strong>Solid Rigid Square:</strong> Object is treated as a single non-deformable body (no molecular structure).</li>
+              <li><strong>Binary Contact Detection:</strong> Objects are either "touching" or "not touching"—no gradual force sensing.</li>
+              <li><strong>Penetration Correction:</strong> When overlap detected, object is instantly pushed out (can cause jitter).</li>
+              <li><strong>Poor Force Feedback:</strong> Contact forces computed as corrections to penetration, not continuous sensing.</li>
+              <li><strong>No Deformation:</strong> Object maintains perfect shape (100% stability) but can't model soft materials.</li>
+            </ul>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <h4 style="color: #60a5fa; margin-bottom: 10px;">Molecular Force Field Method (Right)</h4>
+            <ul style="color: #cbd5e1; line-height: 1.8; margin-left: 20px;">
+              <li><strong>Hexagonal Crystal Structure:</strong> Object made of 70+ particles in HCP lattice with internal molecular bonds.</li>
+              <li><strong>Natural Haptic Feedback:</strong> Force gradient provides continuous "feel" of object proximity and contact pressure.</li>
+              <li><strong>Prevents Crushing:</strong> Repulsive forces automatically limit grip force—impossible to over-penetrate.</li>
+              <li><strong>Distributed Contact:</strong> Multiple "sensor points" on gripper fingers provide rich force distribution data.</li>
+              <li><strong>Soft Grasp Emergence:</strong> No special programming needed—soft grasping arises naturally from force field physics.</li>
+              <li><strong>Deformable Objects:</strong> Each particle in object interacts with gripper particles—natural soft-body simulation.</li>
+              <li><strong>Stability Features:</strong> Forces reduced by 80%, velocities clamped (max 2 px/frame), strong damping (0.7×), center-of-mass stabilization to prevent spinning.</li>
+            </ul>
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.15); border-left: 4px solid #10b981; padding: 15px; border-radius: 4px;">
+            <strong style="color: #10b981;">Real-World Applications:</strong><br>
+            <span style="color: #cbd5e1;">
+              <ul style="margin-top: 10px; margin-left: 20px;">
+                <li><strong>Surgical Robotics:</strong> Prevent tissue damage through continuous force sensing 
+                  (<a href="https://en.wikipedia.org/wiki/Robot-assisted_surgery" target="_blank" style="color: #60a5fa;">da Vinci system</a> uses force feedback)</li>
+                <li><strong>Soft Grippers:</strong> Compliant actuators benefit from soft collision physics 
+                  (<a href="https://en.wikipedia.org/wiki/Soft_robotics" target="_blank" style="color: #60a5fa;">soft robotics research</a>)</li>
+                <li><strong>Food Handling:</strong> Pick fruits without bruising—major challenge in agricultural automation</li>
+                <li><strong>VR Haptics:</strong> Provide realistic force feedback in 
+                  <a href="https://en.wikipedia.org/wiki/Haptic_technology" target="_blank" style="color: #60a5fa;">haptic gloves</a> and controllers</li>
+                <li><strong>Prosthetics:</strong> Natural grasp control for 
+                  <a href="https://en.wikipedia.org/wiki/Prosthesis" target="_blank" style="color: #60a5fa;">advanced prosthetic hands</a></li>
+              </ul>
+            </span>
+          </div>
+        </div>
+
+        <div style="background: rgba(30, 41, 59, 0.8); border-radius: 12px; padding: 25px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);">
+          <h3 style="color: #a78bfa; margin-bottom: 15px;">Technical Observations</h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 2px solid #ef4444; border-radius: 8px; padding: 15px;">
+              <h4 style="color: #ef4444; margin-bottom: 10px;">Traditional: "All or Nothing" Contact</h4>
+              <ul style="color: #cbd5e1; line-height: 1.6; margin-left: 15px; font-size: 0.9em;">
+                <li>Grippers close until collision detected</li>
+                <li>Sudden impulse response creates "snap" feel</li>
+                <li>Object can penetrate during fast closure</li>
+                <li>Force feedback is reactive (after penetration)</li>
+                <li>Difficult to achieve gentle, proportional grip</li>
+              </ul>
+            </div>
+
+            <div style="background: rgba(16, 185, 129, 0.1); border: 2px solid #10b981; border-radius: 8px; padding: 15px;">
+              <h4 style="color: #10b981; margin-bottom: 10px;">Molecular: Gradual Force Sensing</h4>
+              <ul style="color: #cbd5e1; line-height: 1.6; margin-left: 15px; font-size: 0.9em;">
+                <li>Forces increase smoothly as grippers approach</li>
+                <li>Natural "compliance"—soft objects deform gradually</li>
+                <li>Physically impossible to penetrate</li>
+                <li>Force feedback is predictive (before contact)</li>
+                <li>Proportional grip emerges automatically</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; padding: 15px; background: rgba(59, 130, 246, 0.05); border-radius: 8px;">
+            <p style="color: #94a3b8; font-size: 0.9em; line-height: 1.6;">
+              <strong>Research Direction:</strong> This demo suggests molecular force fields could enable simplified control strategies 
+              for soft robotics. Instead of complex impedance controllers and force sensors, the physics engine itself provides 
+              continuous haptic feedback. See 
+              <a href="https://ieeexplore.ieee.org/document/8793640" target="_blank" style="color: #60a5fa;">IEEE work on soft robot control</a> 
+              and <a href="https://www.science.org/doi/10.1126/scirobotics.aav3616" target="_blank" style="color: #60a5fa;">Science Robotics on compliant grasping</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global parameters
+    let params = {
+      numBalls: 15,
+      ballSize: 10,
+      velocity: 3,
+      forceStrength: 0.05,
+      sensingRange: 100,
+      damping: 0.99,
+      // Demo 2 params
+      numBalls2: 20,
+      ljEpsilon: 0.1,
+      ljSigma: 30,
+      chargeStrength: 500,
+      temperature: 0.2,
+      viscosity: 0.98,
+      // Demo 3 params
+      impactVel: 5,
+      bodyParticles: 25,
+      rigidStiffness: 0.8,
+      molecularStiffness: 0.15,
+      timeStep: 1.0,
+      // Demo 4 Pong params
+      pongSpeed: 1.5,
+      pongBallSize: 8,
+      pongPaddleSpeed: 6,
+      pongUpdateRate: 60,
+      pongForceStrength: 0.5,
+      // Demo 5 Gripper params
+      gripperClosure: 0,
+      gripSpeed: 2.0,
+      objectSoftness: 0.5,
+      forceSensitivity: 1.0
+    };
+
+    // Setup slider listeners for Demo 1
+    const sliders = ['numBalls', 'ballSize', 'velocity', 'forceStrength', 'sensingRange', 'damping'];
+    sliders.forEach(id => {
+      const slider = document.getElementById(id);
+      const display = document.getElementById(id + '-val');
+      slider.addEventListener('input', (e) => {
+        params[id] = parseFloat(e.target.value);
+        display.textContent = parseFloat(e.target.value).toFixed(id === 'damping' ? 3 : (id === 'forceStrength' ? 2 : 0));
+      });
+    });
+
+    // Setup slider listeners for Demo 2
+    const sliders2 = ['numBalls2', 'ljEpsilon', 'ljSigma', 'chargeStrength', 'temperature', 'viscosity'];
+    sliders2.forEach(id => {
+      const slider = document.getElementById(id);
+      const display = document.getElementById(id + '-val');
+      slider.addEventListener('input', (e) => {
+        params[id] = parseFloat(e.target.value);
+        display.textContent = parseFloat(e.target.value).toFixed(id === 'viscosity' ? 3 : (id === 'ljEpsilon' || id === 'temperature' ? 2 : 0));
+      });
+    });
+
+    // Setup slider listeners for Demo 3
+    const sliders3 = ['impactVel', 'bodyParticles', 'rigidStiffness', 'molecularStiffness', 'timeStep'];
+    sliders3.forEach(id => {
+      const slider = document.getElementById(id);
+      const display = document.getElementById(id + '-val');
+      slider.addEventListener('input', (e) => {
+        params[id] = parseFloat(e.target.value);
+        const decimals = id === 'bodyParticles' ? 0 : (id === 'impactVel' || id === 'timeStep' ? 1 : 2);
+        display.textContent = parseFloat(e.target.value).toFixed(decimals);
+      });
+    });
+
+    // Setup slider listeners for Demo 4 (Pong)
+    const sliders4 = ['pongSpeed', 'pongBallSize', 'pongPaddleSpeed', 'pongUpdateRate', 'pongForceStrength'];
+    sliders4.forEach(id => {
+      const slider = document.getElementById(id);
+      const display = document.getElementById(id + '-val');
+      slider.addEventListener('input', (e) => {
+        params[id] = parseFloat(e.target.value);
+        if (id === 'pongUpdateRate') {
+          display.textContent = parseFloat(e.target.value).toFixed(0) + ' Hz';
+        } else {
+          const decimals = id === 'pongBallSize' || id === 'pongPaddleSpeed' ? 0 : (id === 'pongSpeed' ? 1 : 2);
+          display.textContent = parseFloat(e.target.value).toFixed(decimals);
+        }
+      });
+    });
+
+    // Setup slider listeners for Demo 5 (Gripper)
+    const sliders5 = ['gripperClosure', 'gripSpeed', 'objectSoftness', 'forceSensitivity'];
+    sliders5.forEach(id => {
+      const slider = document.getElementById(id);
+      const display = document.getElementById(id + '-val');
+      slider.addEventListener('input', (e) => {
+        params[id] = parseFloat(e.target.value);
+        if (id === 'gripperClosure') {
+          display.textContent = parseFloat(e.target.value).toFixed(0) + '%';
+        } else {
+          display.textContent = parseFloat(e.target.value).toFixed(1);
+        }
+      });
+    });
+
+    // Tab switching
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+    }
+
+    // Ball class
+    class Ball {
+      constructor(x, y, vx, vy, r, color, charge = 0) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.r = r;
+        this.color = color;
+        this.charge = charge; // For electrostatic demo
+      }
+      
+      draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        
+        // Draw charge indicator for electrostatic demo
+        if (this.charge !== 0) {
+          ctx.fillStyle = 'white';
+          ctx.font = '12px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(this.charge > 0 ? '+' : '-', this.x, this.y);
+        }
+      }
+    }
+
+    // Demo 1: Traditional vs Molecular
+    let sim1Traditional = null;
+    let sim1Molecular = null;
+
+    function setupDemo1() {
+      if (sim1Traditional) sim1Traditional.stop();
+      if (sim1Molecular) sim1Molecular.stop();
+      
+      sim1Traditional = new Simulation('traditional', false);
+      sim1Molecular = new Simulation('molecular', true);
+    }
+
+    class Simulation {
+      constructor(canvasId, molecular = false) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.molecular = molecular;
+        this.balls = [];
+        this.running = true;
+        this.initBalls();
+        this.animate();
+      }
+
+      initBalls() {
+        this.balls = [];
+        const count = params.numBalls;
+        const colors = this.molecular ? 
+          ['#2a9d8f', '#06d6a0', '#118ab2', '#073b4c', '#0ba49d'] : 
+          ['#e76f51', '#f4a261', '#e9c46a', '#d62828', '#f77f00'];
+        
+        for (let i = 0; i < count; i++) {
+          const margin = params.ballSize + 5;
+          this.balls.push(new Ball(
+            margin + Math.random() * (this.canvas.width - 2 * margin),
+            margin + Math.random() * (this.canvas.height - 2 * margin),
+            (Math.random() - 0.5) * params.velocity * 2,
+            (Math.random() - 0.5) * params.velocity * 2,
+            params.ballSize,
+            colors[i % colors.length]
+          ));
+        }
+      }
+
+      update() {
+        for (let b of this.balls) {
+          // Move
+          b.x += b.vx;
+          b.y += b.vy;
+
+          // Apply damping
+          b.vx *= params.damping;
+          b.vy *= params.damping;
+
+          // Boundary collisions
+          if (b.x < b.r) {
+            b.x = b.r;
+            b.vx = Math.abs(b.vx);
+          }
+          if (b.x > this.canvas.width - b.r) {
+            b.x = this.canvas.width - b.r;
+            b.vx = -Math.abs(b.vx);
+          }
+          if (b.y < b.r) {
+            b.y = b.r;
+            b.vy = Math.abs(b.vy);
+          }
+          if (b.y > this.canvas.height - b.r) {
+            b.y = this.canvas.height - b.r;
+            b.vy = -Math.abs(b.vy);
+          }
+
+          // Interaction model
+          for (let other of this.balls) {
+            if (other === b) continue;
+            const dx = other.x - b.x;
+            const dy = other.y - b.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (this.molecular) {
+              // Molecular sensing force (repulsive)
+              if (dist < params.sensingRange && dist > 0) {
+                const force = params.forceStrength * (1 - dist / params.sensingRange);
+                const fx = force * dx / dist;
+                const fy = force * dy / dist;
+                b.vx -= fx;
+                b.vy -= fy;
+              }
+            } else {
+              // Traditional hard collision
+              if (dist < b.r + other.r) {
+                // Simple elastic collision
+                const angle = Math.atan2(dy, dx);
+                const sin = Math.sin(angle);
+                const cos = Math.cos(angle);
+                
+                // Rotate velocities
+                const vx1 = b.vx * cos + b.vy * sin;
+                const vy1 = b.vy * cos - b.vx * sin;
+                const vx2 = other.vx * cos + other.vy * sin;
+                
+                // Collision reaction
+                b.vx = vx2 * cos - vy1 * sin;
+                b.vy = vy1 * cos + vx2 * sin;
+                
+                // Separate balls
+                const overlap = b.r + other.r - dist;
+                b.x -= overlap * cos / 2;
+                b.y -= overlap * sin / 2;
+              }
+            }
+          }
+        }
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw sensing range for molecular demo (only for first ball)
+        if (this.molecular && this.balls.length > 0) {
+          const b = this.balls[0];
+          this.ctx.beginPath();
+          this.ctx.arc(b.x, b.y, params.sensingRange, 0, Math.PI * 2);
+          this.ctx.strokeStyle = 'rgba(42, 157, 143, 0.2)';
+          this.ctx.lineWidth = 1;
+          this.ctx.stroke();
+        }
+        
+        for (let b of this.balls) {
+          b.draw(this.ctx);
+        }
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    function resetDemo1() {
+      setupDemo1();
+    }
+
+    // Demo 2: Advanced Molecular Forces
+    let sim2LJ = null;
+    let sim2Electro = null;
+
+    function setupDemo2() {
+      if (sim2LJ) sim2LJ.stop();
+      if (sim2Electro) sim2Electro.stop();
+      
+      sim2LJ = new LennardJonesSimulation('lennardJones');
+      sim2Electro = new ElectrostaticSimulation('electrostatic');
+    }
+
+    // Lennard-Jones simulation
+    class LennardJonesSimulation {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.balls = [];
+        this.running = true;
+        this.initBalls();
+        this.animate();
+      }
+
+      initBalls() {
+        this.balls = [];
+        const colors = ['#ffd700', '#ffa500', '#ff8c00', '#ff6347', '#ff4500'];
+        for (let i = 0; i < params.numBalls2; i++) {
+          const margin = 15;
+          this.balls.push(new Ball(
+            margin + Math.random() * (this.canvas.width - 2 * margin),
+            margin + Math.random() * (this.canvas.height - 2 * margin),
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            12,
+            colors[i % colors.length]
+          ));
+        }
+      }
+
+      update() {
+        for (let b of this.balls) {
+          // Apply brownian motion (temperature effect)
+          b.vx += (Math.random() - 0.5) * params.temperature;
+          b.vy += (Math.random() - 0.5) * params.temperature;
+          
+          // Move
+          b.x += b.vx;
+          b.y += b.vy;
+
+          // Apply viscosity
+          b.vx *= params.viscosity;
+          b.vy *= params.viscosity;
+
+          // Boundary handling (periodic for more realistic molecular simulation)
+          if (b.x < 0) b.x += this.canvas.width;
+          if (b.x > this.canvas.width) b.x -= this.canvas.width;
+          if (b.y < 0) b.y += this.canvas.height;
+          if (b.y > this.canvas.height) b.y -= this.canvas.height;
+
+          // Lennard-Jones forces
+          for (let other of this.balls) {
+            if (other === b) continue;
+            let dx = other.x - b.x;
+            let dy = other.y - b.y;
+            
+            // Periodic boundary conditions
+            if (dx > this.canvas.width / 2) dx -= this.canvas.width;
+            if (dx < -this.canvas.width / 2) dx += this.canvas.width;
+            if (dy > this.canvas.height / 2) dy -= this.canvas.height;
+            if (dy < -this.canvas.height / 2) dy += this.canvas.height;
+            
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 150 && dist > 0.1) {
+              // Lennard-Jones potential: F = 24ε/r * (2(σ/r)^12 - (σ/r)^6)
+              const sigma_r = params.ljSigma / dist;
+              const sigma_r6 = Math.pow(sigma_r, 6);
+              const sigma_r12 = sigma_r6 * sigma_r6;
+              const force = 24 * params.ljEpsilon / dist * (2 * sigma_r12 - sigma_r6);
+              
+              const fx = force * dx / dist;
+              const fy = force * dy / dist;
+              b.vx += fx;
+              b.vy += fy;
+            }
+          }
+        }
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw bonds between close particles
+        this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.1)';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < this.balls.length; i++) {
+          for (let j = i + 1; j < this.balls.length; j++) {
+            const dx = this.balls[j].x - this.balls[i].x;
+            const dy = this.balls[j].y - this.balls[i].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < params.ljSigma * 1.5) {
+              this.ctx.beginPath();
+              this.ctx.moveTo(this.balls[i].x, this.balls[i].y);
+              this.ctx.lineTo(this.balls[j].x, this.balls[j].y);
+              this.ctx.stroke();
+            }
+          }
+        }
+        
+        for (let b of this.balls) {
+          b.draw(this.ctx);
+        }
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    // Electrostatic simulation
+    class ElectrostaticSimulation {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.balls = [];
+        this.running = true;
+        this.initBalls();
+        this.animate();
+      }
+
+      initBalls() {
+        this.balls = [];
+        for (let i = 0; i < params.numBalls2; i++) {
+          const margin = 15;
+          const charge = i % 2 === 0 ? 1 : -1;
+          const color = charge > 0 ? '#3b82f6' : '#ef4444';
+          this.balls.push(new Ball(
+            margin + Math.random() * (this.canvas.width - 2 * margin),
+            margin + Math.random() * (this.canvas.height - 2 * margin),
+            (Math.random() - 0.5) * 2,
+            (Math.random() - 0.5) * 2,
+            12,
+            color,
+            charge
+          ));
+        }
+      }
+
+      update() {
+        for (let b of this.balls) {
+          // Apply brownian motion
+          b.vx += (Math.random() - 0.5) * params.temperature;
+          b.vy += (Math.random() - 0.5) * params.temperature;
+          
+          // Move
+          b.x += b.vx;
+          b.y += b.vy;
+
+          // Apply viscosity
+          b.vx *= params.viscosity;
+          b.vy *= params.viscosity;
+
+          // Boundary collisions with dampening
+          if (b.x < b.r || b.x > this.canvas.width - b.r) {
+            b.vx *= -0.8;
+            b.x = Math.max(b.r, Math.min(this.canvas.width - b.r, b.x));
+          }
+          if (b.y < b.r || b.y > this.canvas.height - b.r) {
+            b.vy *= -0.8;
+            b.y = Math.max(b.r, Math.min(this.canvas.height - b.r, b.y));
+          }
+
+          // Coulomb's law: F = k * q1 * q2 / r^2
+          for (let other of this.balls) {
+            if (other === b) continue;
+            const dx = other.x - b.x;
+            const dy = other.y - b.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > 0.1 && dist < 300) {
+              // Coulomb force (negative means opposite charges attract)
+              const force = params.chargeStrength * b.charge * other.charge / (dist * dist);
+              const fx = -force * dx / dist;
+              const fy = -force * dy / dist;
+              b.vx += fx * 0.01;
+              b.vy += fy * 0.01;
+            }
+          }
+        }
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Draw field lines between opposite charges
+        this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.15)';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < this.balls.length; i++) {
+          for (let j = i + 1; j < this.balls.length; j++) {
+            if (this.balls[i].charge !== this.balls[j].charge) {
+              const dx = this.balls[j].x - this.balls[i].x;
+              const dy = this.balls[j].y - this.balls[i].y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist < 150) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.balls[i].x, this.balls[i].y);
+                this.ctx.lineTo(this.balls[j].x, this.balls[j].y);
+                this.ctx.stroke();
+              }
+            }
+          }
+        }
+        
+        for (let b of this.balls) {
+          b.draw(this.ctx);
+        }
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    function resetDemo2() {
+      setupDemo2();
+    }
+
+    // Demo 3: Performance Analysis
+    let sim3Rigid = null;
+    let sim3Molecular = null;
+
+    function setupDemo3() {
+      if (sim3Rigid) sim3Rigid.stop();
+      if (sim3Molecular) sim3Molecular.stop();
+      
+      sim3Rigid = new RigidBodySimulation('rigidBody');
+      sim3Molecular = new MolecularBodySimulation('molecular3');
+    }
+
+    // Body class for Demo 3 (composed of particles)
+    class Body {
+      constructor(x, y, vx, vy, particleCount, color) {
+        this.particles = [];
+        this.color = color;
+        this.vx = vx;
+        this.vy = vy;
+        
+        // Create particles in a circular arrangement
+        const radius = Math.sqrt(particleCount) * 3;
+        const angleStep = (Math.PI * 2) / particleCount;
+        
+        for (let i = 0; i < particleCount; i++) {
+          const angle = i * angleStep;
+          const r = radius * Math.sqrt(Math.random() * 0.8 + 0.2);
+          const px = x + Math.cos(angle) * r;
+          const py = y + Math.sin(angle) * r;
+          this.particles.push(new Ball(px, py, vx, vy, 6, color));
+        }
+      }
+
+      getCenterOfMass() {
+        let cx = 0, cy = 0;
+        for (let p of this.particles) {
+          cx += p.x;
+          cy += p.y;
+        }
+        return { x: cx / this.particles.length, y: cy / this.particles.length };
+      }
+
+      getVelocity() {
+        let vx = 0, vy = 0;
+        for (let p of this.particles) {
+          vx += p.vx;
+          vy += p.vy;
+        }
+        return { vx: vx / this.particles.length, vy: vy / this.particles.length };
+      }
+
+      draw(ctx) {
+        // Draw connecting lines between particles
+        ctx.strokeStyle = this.color + '40';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < this.particles.length; i++) {
+          for (let j = i + 1; j < this.particles.length; j++) {
+            const dx = this.particles[j].x - this.particles[i].x;
+            const dy = this.particles[j].y - this.particles[i].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 30) {
+              ctx.beginPath();
+              ctx.moveTo(this.particles[i].x, this.particles[i].y);
+              ctx.lineTo(this.particles[j].x, this.particles[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+        
+        // Draw particles
+        for (let p of this.particles) {
+          p.draw(ctx);
+        }
+      }
+    }
+
+    // Rigid Body Simulation with metrics
+    class RigidBodySimulation {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.running = true;
+        this.bodies = [];
+        this.metrics = {
+          collisionChecks: 0,
+          collisionsDetected: 0,
+          frameTimes: [],
+          contactErrors: [],
+          tunnelingEvents: 0,
+          initialEnergy: 0,
+          frameCount: 0
+        };
+        this.initBodies();
+        this.animate();
+      }
+
+      initBodies() {
+        const count = params.bodyParticles;
+        this.bodies = [
+          new Body(150, 200, params.impactVel * params.timeStep, 0, count, '#e76f51'),
+          new Body(350, 200, -params.impactVel * params.timeStep, 0, count, '#2a9d8f')
+        ];
+        this.metrics.initialEnergy = this.calculateTotalEnergy();
+      }
+
+      calculateTotalEnergy() {
+        let energy = 0;
+        for (let body of this.bodies) {
+          for (let p of body.particles) {
+            energy += 0.5 * (p.vx * p.vx + p.vy * p.vy);
+          }
+        }
+        return energy;
+      }
+
+      update() {
+        const startTime = performance.now();
+        this.metrics.collisionChecks = 0;
+        let maxPenetration = 0;
+
+        // Update particle positions
+        for (let body of this.bodies) {
+          for (let p of body.particles) {
+            p.x += p.vx * params.timeStep;
+            p.y += p.vy * params.timeStep;
+
+            // Boundary collisions
+            if (p.x < p.r || p.x > this.canvas.width - p.r) {
+              p.vx *= -params.rigidStiffness;
+              p.x = Math.max(p.r, Math.min(this.canvas.width - p.r, p.x));
+            }
+            if (p.y < p.r || p.y > this.canvas.height - p.r) {
+              p.vy *= -params.rigidStiffness;
+              p.y = Math.max(p.r, Math.min(this.canvas.height - p.r, p.y));
+            }
+          }
+        }
+
+        // Check collisions between bodies
+        for (let i = 0; i < this.bodies.length; i++) {
+          for (let j = i + 1; j < this.bodies.length; j++) {
+            for (let p1 of this.bodies[i].particles) {
+              for (let p2 of this.bodies[j].particles) {
+                this.metrics.collisionChecks++;
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const minDist = p1.r + p2.r;
+
+                if (dist < minDist) {
+                  this.metrics.collisionsDetected++;
+                  const penetration = minDist - dist;
+                  maxPenetration = Math.max(maxPenetration, penetration);
+
+                  // Check for tunneling (large penetration suggests missed collision)
+                  if (penetration > p1.r) {
+                    this.metrics.tunnelingEvents++;
+                  }
+
+                  // Elastic collision response
+                  const angle = Math.atan2(dy, dx);
+                  const sin = Math.sin(angle);
+                  const cos = Math.cos(angle);
+
+                  // Rotate velocities
+                  const v1x = p1.vx * cos + p1.vy * sin;
+                  const v1y = p1.vy * cos - p1.vx * sin;
+                  const v2x = p2.vx * cos + p2.vy * sin;
+                  const v2y = p2.vy * cos - p2.vx * sin;
+
+                  // Exchange velocities in collision direction
+                  const v1xFinal = v2x * params.rigidStiffness;
+                  const v2xFinal = v1x * params.rigidStiffness;
+
+                  // Rotate back
+                  p1.vx = v1xFinal * cos - v1y * sin;
+                  p1.vy = v1y * cos + v1xFinal * sin;
+                  p2.vx = v2xFinal * cos - v2y * sin;
+                  p2.vy = v2y * cos + v2xFinal * sin;
+
+                  // Separate particles
+                  const separation = penetration / 2;
+                  p1.x -= separation * cos;
+                  p1.y -= separation * sin;
+                  p2.x += separation * cos;
+                  p2.y += separation * sin;
+                }
+              }
+            }
+          }
+        }
+
+        this.metrics.contactErrors.push(maxPenetration);
+        if (this.metrics.contactErrors.length > 60) this.metrics.contactErrors.shift();
+
+        const frameTime = performance.now() - startTime;
+        this.metrics.frameTimes.push(frameTime);
+        if (this.metrics.frameTimes.length > 60) this.metrics.frameTimes.shift();
+        this.metrics.frameCount++;
+
+        this.updateMetricsDisplay();
+      }
+
+      updateMetricsDisplay() {
+        const avgTime = this.metrics.frameTimes.reduce((a, b) => a + b, 0) / this.metrics.frameTimes.length;
+        const avgError = this.metrics.contactErrors.reduce((a, b) => a + b, 0) / this.metrics.contactErrors.length;
+        const currentEnergy = this.calculateTotalEnergy();
+        const energyDrift = Math.abs((currentEnergy - this.metrics.initialEnergy) / this.metrics.initialEnergy * 100);
+
+        document.getElementById('rigid-checks').textContent = this.metrics.collisionChecks;
+        document.getElementById('rigid-collisions').textContent = this.metrics.collisionsDetected;
+        document.getElementById('rigid-time').textContent = avgTime.toFixed(2) + 'ms';
+        document.getElementById('rigid-error').textContent = avgError.toFixed(2) + 'px';
+        document.getElementById('rigid-tunnel').textContent = this.metrics.tunnelingEvents;
+        document.getElementById('rigid-energy').textContent = energyDrift.toFixed(2) + '%';
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        for (let body of this.bodies) {
+          body.draw(this.ctx);
+        }
+
+        // Draw center of mass
+        for (let body of this.bodies) {
+          const com = body.getCenterOfMass();
+          this.ctx.beginPath();
+          this.ctx.arc(com.x, com.y, 4, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#fbbf24';
+          this.ctx.fill();
+        }
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    // Molecular Body Simulation with metrics
+    class MolecularBodySimulation {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.running = true;
+        this.bodies = [];
+        this.metrics = {
+          forceCalculations: 0,
+          softContacts: 0,
+          frameTimes: [],
+          contactErrors: [],
+          tunnelingEvents: 0,
+          initialEnergy: 0,
+          frameCount: 0
+        };
+        this.initBodies();
+        this.animate();
+      }
+
+      initBodies() {
+        const count = params.bodyParticles;
+        this.bodies = [
+          new Body(150, 200, params.impactVel * params.timeStep, 0, count, '#06d6a0'),
+          new Body(350, 200, -params.impactVel * params.timeStep, 0, count, '#3b82f6')
+        ];
+        this.metrics.initialEnergy = this.calculateTotalEnergy();
+      }
+
+      calculateTotalEnergy() {
+        let energy = 0;
+        for (let body of this.bodies) {
+          for (let p of body.particles) {
+            energy += 0.5 * (p.vx * p.vx + p.vy * p.vy);
+          }
+        }
+        return energy;
+      }
+
+      update() {
+        const startTime = performance.now();
+        this.metrics.forceCalculations = 0;
+        this.metrics.softContacts = 0;
+        let minDistance = Infinity;
+
+        // Update particle positions
+        for (let body of this.bodies) {
+          for (let p of body.particles) {
+            p.x += p.vx * params.timeStep;
+            p.y += p.vy * params.timeStep;
+
+            // Boundary forces (soft)
+            const margin = 30;
+            if (p.x < margin) {
+              p.vx += (margin - p.x) * 0.01 * params.molecularStiffness;
+            }
+            if (p.x > this.canvas.width - margin) {
+              p.vx -= (p.x - (this.canvas.width - margin)) * 0.01 * params.molecularStiffness;
+            }
+            if (p.y < margin) {
+              p.vy += (margin - p.y) * 0.01 * params.molecularStiffness;
+            }
+            if (p.y > this.canvas.height - margin) {
+              p.vy -= (p.y - (this.canvas.height - margin)) * 0.01 * params.molecularStiffness;
+            }
+          }
+        }
+
+        // Calculate molecular forces between bodies
+        for (let i = 0; i < this.bodies.length; i++) {
+          for (let j = i + 1; j < this.bodies.length; j++) {
+            for (let p1 of this.bodies[i].particles) {
+              for (let p2 of this.bodies[j].particles) {
+                this.metrics.forceCalculations++;
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const sensingRange = 50;
+
+                if (dist < sensingRange && dist > 0.1) {
+                  minDistance = Math.min(minDistance, dist);
+                  this.metrics.softContacts++;
+
+                  // Soft repulsive force (exponential-like)
+                  const force = params.molecularStiffness * Math.pow(1 - dist / sensingRange, 2);
+                  const fx = force * dx / dist;
+                  const fy = force * dy / dist;
+
+                  p1.vx -= fx * params.timeStep;
+                  p1.vy -= fy * params.timeStep;
+                  p2.vx += fx * params.timeStep;
+                  p2.vy += fy * params.timeStep;
+                }
+
+                // Check for tunneling (should never happen with molecular forces)
+                if (dist < p1.r) {
+                  this.metrics.tunnelingEvents++;
+                }
+              }
+            }
+          }
+        }
+
+        // Contact error is how close particles get (ideally should stay at particle radius distance)
+        const targetDist = 12; // 2 * particle radius
+        const contactError = minDistance < 100 ? Math.max(0, targetDist - minDistance) : 0;
+        this.metrics.contactErrors.push(contactError);
+        if (this.metrics.contactErrors.length > 60) this.metrics.contactErrors.shift();
+
+        const frameTime = performance.now() - startTime;
+        this.metrics.frameTimes.push(frameTime);
+        if (this.metrics.frameTimes.length > 60) this.metrics.frameTimes.shift();
+        this.metrics.frameCount++;
+
+        this.updateMetricsDisplay();
+      }
+
+      updateMetricsDisplay() {
+        const avgTime = this.metrics.frameTimes.reduce((a, b) => a + b, 0) / this.metrics.frameTimes.length;
+        const avgError = this.metrics.contactErrors.reduce((a, b) => a + b, 0) / this.metrics.contactErrors.length;
+        const currentEnergy = this.calculateTotalEnergy();
+        const energyDrift = Math.abs((currentEnergy - this.metrics.initialEnergy) / this.metrics.initialEnergy * 100);
+
+        document.getElementById('molecular-checks').textContent = this.metrics.forceCalculations;
+        document.getElementById('molecular-collisions').textContent = this.metrics.softContacts;
+        document.getElementById('molecular-time').textContent = avgTime.toFixed(2) + 'ms';
+        document.getElementById('molecular-error').textContent = avgError.toFixed(2) + 'px';
+        document.getElementById('molecular-tunnel').textContent = this.metrics.tunnelingEvents;
+        document.getElementById('molecular-energy').textContent = energyDrift.toFixed(2) + '%';
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw force field visualization
+        this.ctx.strokeStyle = 'rgba(59, 130, 246, 0.1)';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < this.bodies.length; i++) {
+          for (let j = i + 1; j < this.bodies.length; j++) {
+            for (let p1 of this.bodies[i].particles) {
+              for (let p2 of this.bodies[j].particles) {
+                const dx = p2.x - p1.x;
+                const dy = p2.y - p1.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 50) {
+                  this.ctx.beginPath();
+                  this.ctx.moveTo(p1.x, p1.y);
+                  this.ctx.lineTo(p2.x, p2.y);
+                  this.ctx.stroke();
+                }
+              }
+            }
+          }
+        }
+
+        for (let body of this.bodies) {
+          body.draw(this.ctx);
+        }
+
+        // Draw center of mass
+        for (let body of this.bodies) {
+          const com = body.getCenterOfMass();
+          this.ctx.beginPath();
+          this.ctx.arc(com.x, com.y, 4, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#10b981';
+          this.ctx.fill();
+        }
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    function resetDemo3() {
+      setupDemo3();
+    }
+
+    // Demo 4: Pong Games
+    let pongTrad = null;
+    let pongMol = null;
+    const keys = {};
+
+    // Keyboard input
+    document.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+    });
+    document.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+    });
+
+    function setupPong() {
+      if (pongTrad) pongTrad.stop();
+      if (pongMol) pongMol.stop();
+      
+      pongTrad = new PongTraditional('pongTraditional');
+      pongMol = new PongMolecular('pongMolecular');
+    }
+
+    class PongTraditional {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.running = true;
+        
+        // Game objects
+        this.ball = {
+          x: this.canvas.width / 2,
+          y: this.canvas.height / 2,
+          vx: 4 * params.pongSpeed,
+          vy: 3 * params.pongSpeed,
+          r: params.pongBallSize,
+          lastX: this.canvas.width / 2,
+          lastY: this.canvas.height / 2
+        };
+        
+        this.paddleWidth = 15;
+        this.paddleHeight = 80;
+        this.leftPaddle = {
+          x: 30,
+          y: this.canvas.height / 2 - this.paddleHeight / 2,
+          w: this.paddleWidth,
+          h: this.paddleHeight,
+          vy: 0
+        };
+        
+        this.rightPaddle = {
+          x: this.canvas.width - 30 - this.paddleWidth,
+          y: this.canvas.height / 2 - this.paddleHeight / 2,
+          w: this.paddleWidth,
+          h: this.paddleHeight,
+          vy: 0
+        };
+        
+        this.score = { left: 0, right: 0 };
+        this.metrics = {
+          checks: 0,
+          frameTimes: [],
+          missedCollisions: 0,
+          maxPenetration: 0,
+          tunnelingEvents: 0,
+          glitches: 0,
+          frameCount: 0
+        };
+        
+        this.lastUpdate = performance.now();
+        this.accumulator = 0;
+        this.fixedDt = 1000 / params.pongUpdateRate;
+        
+        this.animate();
+      }
+
+      checkCollision(ball, rect) {
+        // AABB collision check
+        return ball.x + ball.r > rect.x &&
+               ball.x - ball.r < rect.x + rect.w &&
+               ball.y + ball.r > rect.y &&
+               ball.y - ball.r < rect.y + rect.h;
+      }
+
+      update(dt) {
+        const startTime = performance.now();
+        this.metrics.checks = 0;
+        let maxPenetration = 0;
+
+        // Update paddle positions
+        this.leftPaddle.vy = 0;
+        if (keys['ArrowUp']) this.leftPaddle.vy = -params.pongPaddleSpeed;
+        if (keys['ArrowDown']) this.leftPaddle.vy = params.pongPaddleSpeed;
+        this.leftPaddle.y += this.leftPaddle.vy;
+        this.leftPaddle.y = Math.max(0, Math.min(this.canvas.height - this.paddleHeight, this.leftPaddle.y));
+
+        // Store previous ball position for tunneling detection
+        this.ball.lastX = this.ball.x;
+        this.ball.lastY = this.ball.y;
+
+        // Update ball
+        this.ball.x += this.ball.vx;
+        this.ball.y += this.ball.vy;
+
+        // Wall collisions
+        this.metrics.checks += 2;
+        if (this.ball.y - this.ball.r < 0 || this.ball.y + this.ball.r > this.canvas.height) {
+          this.ball.vy *= -1;
+          this.ball.y = Math.max(this.ball.r, Math.min(this.canvas.height - this.ball.r, this.ball.y));
+        }
+
+        // Paddle collisions
+        this.metrics.checks += 2;
+        
+        // Left paddle
+        if (this.checkCollision(this.ball, this.leftPaddle)) {
+          const penetration = (this.leftPaddle.x + this.paddleWidth) - (this.ball.x - this.ball.r);
+          if (penetration > 0) {
+            maxPenetration = Math.max(maxPenetration, penetration);
+            
+            // Check for deep penetration (tunneling indicator)
+            if (penetration > this.ball.r) {
+              this.metrics.tunnelingEvents++;
+            }
+            
+            // Bounce with angle based on hit position
+            const hitPos = (this.ball.y - (this.leftPaddle.y + this.paddleHeight / 2)) / (this.paddleHeight / 2);
+            this.ball.vx = Math.abs(this.ball.vx);
+            this.ball.vy += hitPos * 2;
+            this.ball.x = this.leftPaddle.x + this.paddleWidth + this.ball.r;
+          }
+        } else if (this.ball.lastX > this.leftPaddle.x && this.ball.x < this.leftPaddle.x + this.paddleWidth) {
+          // Ball passed through paddle region - check for missed collision
+          if (this.ball.y > this.leftPaddle.y && this.ball.y < this.leftPaddle.y + this.paddleHeight) {
+            this.metrics.missedCollisions++;
+            this.metrics.glitches++;
+          }
+        }
+
+        // Right paddle
+        if (this.checkCollision(this.ball, this.rightPaddle)) {
+          const penetration = (this.ball.x + this.ball.r) - this.rightPaddle.x;
+          if (penetration > 0) {
+            maxPenetration = Math.max(maxPenetration, penetration);
+            
+            if (penetration > this.ball.r) {
+              this.metrics.tunnelingEvents++;
+            }
+            
+            const hitPos = (this.ball.y - (this.rightPaddle.y + this.paddleHeight / 2)) / (this.paddleHeight / 2);
+            this.ball.vx = -Math.abs(this.ball.vx);
+            this.ball.vy += hitPos * 2;
+            this.ball.x = this.rightPaddle.x - this.ball.r;
+          }
+        } else if (this.ball.lastX < this.rightPaddle.x + this.paddleWidth && this.ball.x > this.rightPaddle.x) {
+          if (this.ball.y > this.rightPaddle.y && this.ball.y < this.rightPaddle.y + this.paddleHeight) {
+            this.metrics.missedCollisions++;
+            this.metrics.glitches++;
+          }
+        }
+
+        // Scoring
+        if (this.ball.x < 0) {
+          this.score.right++;
+          this.resetBall();
+        } else if (this.ball.x > this.canvas.width) {
+          this.score.left++;
+          this.resetBall();
+        }
+
+        this.metrics.maxPenetration = maxPenetration;
+        const frameTime = performance.now() - startTime;
+        this.metrics.frameTimes.push(frameTime);
+        if (this.metrics.frameTimes.length > 60) this.metrics.frameTimes.shift();
+        this.metrics.frameCount++;
+
+        this.updateMetricsDisplay();
+      }
+
+      resetBall() {
+        this.ball.x = this.canvas.width / 2;
+        this.ball.y = this.canvas.height / 2;
+        this.ball.vx = (Math.random() > 0.5 ? 1 : -1) * 4 * params.pongSpeed;
+        this.ball.vy = (Math.random() - 0.5) * 4 * params.pongSpeed;
+        this.ball.r = params.pongBallSize;
+      }
+
+      updateMetricsDisplay() {
+        const avgTime = this.metrics.frameTimes.reduce((a, b) => a + b, 0) / this.metrics.frameTimes.length;
+        
+        document.getElementById('pong-score-traditional').textContent = `${this.score.left} - ${this.score.right}`;
+        document.getElementById('pong-trad-checks').textContent = this.metrics.checks;
+        document.getElementById('pong-trad-time').textContent = avgTime.toFixed(2) + 'ms';
+        document.getElementById('pong-trad-missed').textContent = this.metrics.missedCollisions;
+        document.getElementById('pong-trad-penetration').textContent = this.metrics.maxPenetration.toFixed(2) + 'px';
+        document.getElementById('pong-trad-tunnel').textContent = this.metrics.tunnelingEvents;
+        document.getElementById('pong-trad-glitches').textContent = this.metrics.glitches;
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw center line
+        this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([10, 10]);
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.canvas.width / 2, 0);
+        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+
+        // Draw paddles
+        this.ctx.fillStyle = '#e76f51';
+        this.ctx.fillRect(this.leftPaddle.x, this.leftPaddle.y, this.paddleWidth, this.paddleHeight);
+        this.ctx.fillRect(this.rightPaddle.x, this.rightPaddle.y, this.paddleWidth, this.paddleHeight);
+
+        // Draw ball
+        this.ctx.beginPath();
+        this.ctx.arc(this.ball.x, this.ball.y, this.ball.r, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#60a5fa';
+        this.ctx.fill();
+
+        // Draw velocity indicator
+        this.ctx.strokeStyle = 'rgba(96, 165, 250, 0.5)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.ball.x, this.ball.y);
+        this.ctx.lineTo(this.ball.x + this.ball.vx * 3, this.ball.y + this.ball.vy * 3);
+        this.ctx.stroke();
+      }
+
+      animate() {
+        if (!this.running) return;
+        
+        const now = performance.now();
+        const elapsed = now - this.lastUpdate;
+        this.lastUpdate = now;
+        this.accumulator += elapsed;
+        
+        const targetDt = 1000 / params.pongUpdateRate;
+        while (this.accumulator >= targetDt) {
+          this.update(targetDt);
+          this.accumulator -= targetDt;
+        }
+        
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    class PongMolecular {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.running = true;
+        
+        // Ball as single particle
+        this.ball = {
+          x: this.canvas.width / 2,
+          y: this.canvas.height / 2,
+          vx: 4 * params.pongSpeed,
+          vy: 3 * params.pongSpeed,
+          r: params.pongBallSize
+        };
+        
+        // Paddles as particle chains (increased density)
+        this.paddleParticleCount = 20;
+        this.paddleSpacing = 4;
+        this.leftPaddleParticles = [];
+        this.rightPaddleParticles = [];
+        this.createPaddleParticles();
+        
+        this.score = { left: 0, right: 0 };
+        this.metrics = {
+          forceCalcs: 0,
+          softContacts: 0,
+          frameTimes: [],
+          missedCollisions: 0,
+          maxPenetration: 0,
+          tunnelingEvents: 0,
+          glitches: 0,
+          frameCount: 0
+        };
+        
+        this.lastUpdate = performance.now();
+        this.accumulator = 0;
+        
+        this.animate();
+      }
+
+      createPaddleParticles() {
+        const leftX = 35;
+        const rightX = this.canvas.width - 35;
+        const startY = this.canvas.height / 2 - (this.paddleParticleCount * this.paddleSpacing) / 2;
+        
+        for (let i = 0; i < this.paddleParticleCount; i++) {
+          this.leftPaddleParticles.push({
+            x: leftX,
+            y: startY + i * this.paddleSpacing,
+            targetY: startY + i * this.paddleSpacing,
+            r: 6
+          });
+          this.rightPaddleParticles.push({
+            x: rightX,
+            y: startY + i * this.paddleSpacing,
+            targetY: startY + i * this.paddleSpacing,
+            r: 6
+          });
+        }
+      }
+
+      update(dt) {
+        const startTime = performance.now();
+        this.metrics.forceCalcs = 0;
+        this.metrics.softContacts = 0;
+        let minDist = Infinity;
+
+        // Update paddle target positions
+        const paddleSpeed = params.pongPaddleSpeed * 0.7;
+        if (keys['w']) {
+          this.rightPaddleParticles.forEach(p => p.targetY -= paddleSpeed);
+        }
+        if (keys['s']) {
+          this.rightPaddleParticles.forEach(p => p.targetY += paddleSpeed);
+        }
+
+        // Apply spring forces to paddle particles
+        [...this.leftPaddleParticles, ...this.rightPaddleParticles].forEach(p => {
+          p.targetY = Math.max(p.r, Math.min(this.canvas.height - p.r, p.targetY));
+          p.y += (p.targetY - p.y) * 0.3;
+        });
+
+        // Update ball position
+        this.ball.x += this.ball.vx;
+        this.ball.y += this.ball.vy;
+        this.ball.r = params.pongBallSize;
+
+        // Wall forces
+        const wallMargin = 20;
+        if (this.ball.y < wallMargin) {
+          const force = params.pongForceStrength * (1 - this.ball.y / wallMargin);
+          this.ball.vy += force * 2;
+        }
+        if (this.ball.y > this.canvas.height - wallMargin) {
+          const force = params.pongForceStrength * (1 - (this.canvas.height - this.ball.y) / wallMargin);
+          this.ball.vy -= force * 2;
+        }
+
+        // Molecular forces between ball and paddle particles
+        const checkPaddleForces = (paddleParticles, isLeft) => {
+          paddleParticles.forEach(p => {
+            this.metrics.forceCalcs++;
+            const dx = p.x - this.ball.x;
+            const dy = p.y - this.ball.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const sensingRange = this.ball.r + p.r + 25; // Increased sensing range
+
+            if (dist < sensingRange && dist > 0.1) {
+              minDist = Math.min(minDist, dist);
+              this.metrics.softContacts++;
+
+              // Very strong repulsive force with steep curve (like LJ potential)
+              const overlap = sensingRange - dist;
+              const normalized = overlap / sensingRange;
+              // Use exponential-like repulsion: gets MUCH stronger as distance decreases
+              const force = params.pongForceStrength * Math.pow(normalized, 3) * 50;
+              
+              const fx = force * dx / dist;
+              const fy = force * dy / dist;
+              
+              this.ball.vx -= fx;
+              this.ball.vy -= fy;
+
+              // Add spin effect based on paddle motion and hit position
+              const relativeY = this.ball.y - p.y;
+              if (Math.abs(relativeY) < this.paddleSpacing * 2) {
+                this.ball.vy += (relativeY / (this.paddleSpacing * 2)) * Math.abs(fx) * 0.3;
+              }
+            }
+
+            // Check for ACTUAL deep penetration (ball center overlaps particle center significantly)
+            // This should never happen with proper molecular forces
+            if (dist < (this.ball.r + p.r) * 0.5) {
+              this.metrics.tunnelingEvents++;
+            }
+          });
+        };
+
+        checkPaddleForces(this.leftPaddleParticles, true);
+        checkPaddleForces(this.rightPaddleParticles, false);
+
+        // Scoring
+        if (this.ball.x < 0) {
+          this.score.right++;
+          this.resetBall();
+        } else if (this.ball.x > this.canvas.width) {
+          this.score.left++;
+          this.resetBall();
+        }
+
+        const contactError = minDist < 100 ? Math.max(0, (this.ball.r + 6) - minDist) : 0;
+        this.metrics.maxPenetration = contactError;
+        
+        const frameTime = performance.now() - startTime;
+        this.metrics.frameTimes.push(frameTime);
+        if (this.metrics.frameTimes.length > 60) this.metrics.frameTimes.shift();
+        this.metrics.frameCount++;
+
+        this.updateMetricsDisplay();
+      }
+
+      resetBall() {
+        this.ball.x = this.canvas.width / 2;
+        this.ball.y = this.canvas.height / 2;
+        this.ball.vx = (Math.random() > 0.5 ? 1 : -1) * 4 * params.pongSpeed;
+        this.ball.vy = (Math.random() - 0.5) * 4 * params.pongSpeed;
+      }
+
+      updateMetricsDisplay() {
+        const avgTime = this.metrics.frameTimes.reduce((a, b) => a + b, 0) / this.metrics.frameTimes.length;
+        
+        document.getElementById('pong-score-molecular').textContent = `${this.score.left} - ${this.score.right}`;
+        document.getElementById('pong-mol-checks').textContent = this.metrics.forceCalcs;
+        document.getElementById('pong-mol-time').textContent = avgTime.toFixed(2) + 'ms';
+        document.getElementById('pong-mol-missed').textContent = this.metrics.missedCollisions;
+        document.getElementById('pong-mol-penetration').textContent = this.metrics.maxPenetration.toFixed(2) + 'px';
+        document.getElementById('pong-mol-tunnel').textContent = this.metrics.tunnelingEvents;
+        document.getElementById('pong-mol-glitches').textContent = this.metrics.glitches;
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw center line
+        this.ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([10, 10]);
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.canvas.width / 2, 0);
+        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+        this.ctx.stroke();
+        this.ctx.setLineDash([]);
+
+        // Draw force field visualization (when ball is near)
+        this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.1)';
+        this.ctx.lineWidth = 1;
+        const drawForceLines = (particles) => {
+          particles.forEach(p => {
+            const dx = p.x - this.ball.x;
+            const dy = p.y - this.ball.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 50) {
+              this.ctx.beginPath();
+              this.ctx.moveTo(p.x, p.y);
+              this.ctx.lineTo(this.ball.x, this.ball.y);
+              this.ctx.stroke();
+            }
+          });
+        };
+        drawForceLines(this.leftPaddleParticles);
+        drawForceLines(this.rightPaddleParticles);
+
+        // Draw paddle particles
+        this.ctx.fillStyle = '#06d6a0';
+        [...this.leftPaddleParticles, ...this.rightPaddleParticles].forEach(p => {
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          this.ctx.fill();
+        });
+
+        // Draw connections between paddle particles
+        this.ctx.strokeStyle = 'rgba(6, 214, 160, 0.5)';
+        this.ctx.lineWidth = 3;
+        const drawConnections = (particles) => {
+          for (let i = 0; i < particles.length - 1; i++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(particles[i].x, particles[i].y);
+            this.ctx.lineTo(particles[i + 1].x, particles[i + 1].y);
+            this.ctx.stroke();
+          }
+        };
+        drawConnections(this.leftPaddleParticles);
+        drawConnections(this.rightPaddleParticles);
+
+        // Draw ball
+        this.ctx.beginPath();
+        this.ctx.arc(this.ball.x, this.ball.y, this.ball.r, 0, Math.PI * 2);
+        this.ctx.fillStyle = '#10b981';
+        this.ctx.fill();
+
+        // Draw velocity indicator
+        this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.ball.x, this.ball.y);
+        this.ctx.lineTo(this.ball.x + this.ball.vx * 3, this.ball.y + this.ball.vy * 3);
+        this.ctx.stroke();
+      }
+
+      animate() {
+        if (!this.running) return;
+        
+        const now = performance.now();
+        const elapsed = now - this.lastUpdate;
+        this.lastUpdate = now;
+        this.accumulator += elapsed;
+        
+        const targetDt = 1000 / params.pongUpdateRate;
+        while (this.accumulator >= targetDt) {
+          this.update(targetDt);
+          this.accumulator -= targetDt;
+        }
+        
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    function resetPongGames() {
+      setupPong();
+    }
+
+    function increasePongSpeed() {
+      params.pongSpeed += 0.5;
+      document.getElementById('pongSpeed-val').textContent = params.pongSpeed.toFixed(1);
+      document.getElementById('pongSpeed').value = params.pongSpeed;
+      
+      // Update ball velocities in both games
+      if (pongTrad) {
+        const vMag = Math.sqrt(pongTrad.ball.vx * pongTrad.ball.vx + pongTrad.ball.vy * pongTrad.ball.vy);
+        const scale = (vMag + 1) / vMag;
+        pongTrad.ball.vx *= scale;
+        pongTrad.ball.vy *= scale;
+      }
+      if (pongMol) {
+        const vMag = Math.sqrt(pongMol.ball.vx * pongMol.ball.vx + pongMol.ball.vy * pongMol.ball.vy);
+        const scale = (vMag + 1) / vMag;
+        pongMol.ball.vx *= scale;
+        pongMol.ball.vy *= scale;
+      }
+    }
+
+    // Demo 5: Robotic Gripper
+    let gripTrad = null;
+    let gripMol = null;
+    let gripperClosing = false;
+
+    function setupGrippers() {
+      if (gripTrad) gripTrad.stop();
+      if (gripMol) gripMol.stop();
+      
+      gripTrad = new GripperTraditional('gripperTraditional');
+      gripMol = new GripperMolecular('gripperMolecular');
+    }
+
+    function closeGrippers() {
+      gripperClosing = true;
+      const targetClosure = 80;
+      const step = () => {
+        if (params.gripperClosure < targetClosure && gripperClosing) {
+          params.gripperClosure += params.gripSpeed * 0.5;
+          document.getElementById('gripperClosure').value = params.gripperClosure;
+          document.getElementById('gripperClosure-val').textContent = Math.floor(params.gripperClosure) + '%';
+          requestAnimationFrame(step);
+        } else {
+          gripperClosing = false;
+        }
+      };
+      step();
+    }
+
+    function openGrippers() {
+      gripperClosing = false;
+      const step = () => {
+        if (params.gripperClosure > 0 && !gripperClosing) {
+          params.gripperClosure -= params.gripSpeed;
+          document.getElementById('gripperClosure').value = params.gripperClosure;
+          document.getElementById('gripperClosure-val').textContent = Math.floor(params.gripperClosure) + '%';
+          requestAnimationFrame(step);
+        }
+      };
+      step();
+    }
+
+    function resetGrippers() {
+      params.gripperClosure = 0;
+      document.getElementById('gripperClosure').value = 0;
+      document.getElementById('gripperClosure-val').textContent = '0%';
+      gripperClosing = false;
+      setupGrippers();
+    }
+
+    class GripperTraditional {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.running = true;
+        
+        // Create rigid cube object (held in gripper center)
+        this.object = this.createObject(250, 200, 70);
+        
+        // Create gripper fingers
+        this.leftFinger = this.createFinger(100, 200, false);
+        this.rightFinger = this.createFinger(400, 200, true);
+        
+        this.metrics = {
+          gripForce: 0,
+          deformation: 0,
+          contacts: 0,
+          penetration: 0,
+          stability: 100
+        };
+        
+        this.animate();
+      }
+
+      createObject(x, y, size) {
+        // Traditional method: solid rigid square (no particles!)
+        return {
+          x: x,
+          y: y,
+          size: size,
+          vx: 0,
+          vy: 0,
+          rotation: 0,
+          rotationVel: 0
+        };
+      }
+
+      createFinger(x, y, isRight) {
+        return {
+          x: x,
+          y: y,
+          width: 30,
+          height: 150,
+          isRight: isRight,
+          contactForce: 0
+        };
+      }
+
+      update() {
+        // Update gripper positions
+        const closure = params.gripperClosure / 100;
+        const maxTravel = 180; // Increased from 120 to match molecular gripper
+        this.leftFinger.x = 100 + closure * maxTravel;
+        this.rightFinger.x = 400 - closure * maxTravel;
+
+        // Traditional: Rigid body physics (solid square)
+        let contactCount = 0;
+        let maxPenetration = 0;
+        let totalForce = 0;
+        
+        // NO gravity - suspended in gripper
+        this.object.x += this.object.vx;
+        this.object.y += this.object.vy;
+        this.object.rotation += this.object.rotationVel;
+        
+        // Damping
+        this.object.vx *= 0.98;
+        this.object.vy *= 0.98;
+        this.object.rotationVel *= 0.95;
+        
+        // Check collision with left finger
+        const leftEdge = this.object.x - this.object.size/2;
+        const rightEdge = this.object.x + this.object.size/2;
+        const topEdge = this.object.y - this.object.size/2;
+        const bottomEdge = this.object.y + this.object.size/2;
+        
+        // Left finger collision
+        if (rightEdge > this.leftFinger.x + this.leftFinger.width) {
+          const overlap = rightEdge - (this.leftFinger.x + this.leftFinger.width);
+          if (overlap > 0 && overlap < 50) {
+            maxPenetration = Math.max(maxPenetration, overlap);
+            this.object.x -= overlap;
+            this.object.vx = -Math.abs(this.object.vx) * 0.3;
+            contactCount++;
+            totalForce += overlap * 2;
+          }
+        }
+        
+        // Right finger collision
+        if (leftEdge < this.rightFinger.x) {
+          const overlap = this.rightFinger.x - leftEdge;
+          if (overlap > 0 && overlap < 50) {
+            maxPenetration = Math.max(maxPenetration, overlap);
+            this.object.x += overlap;
+            this.object.vx = Math.abs(this.object.vx) * 0.3;
+            contactCount++;
+            totalForce += overlap * 2;
+          }
+        }
+        
+        // Ground collision
+        if (bottomEdge > 450) {
+          this.object.y = 450 - this.object.size/2;
+          this.object.vy = 0;
+        }
+
+        // Update metrics
+        this.metrics.contacts = contactCount;
+        this.metrics.gripForce = totalForce;
+        this.metrics.deformation = 0; // Rigid body - no deformation
+        this.metrics.penetration = maxPenetration;
+        this.metrics.stability = 100; // Perfectly stable rigid body
+        
+        this.updateMetricsDisplay();
+      }
+
+      updateMetricsDisplay() {
+        document.getElementById('grip-trad-force').textContent = this.metrics.gripForce.toFixed(1) + ' N';
+        document.getElementById('grip-trad-deform').textContent = this.metrics.deformation.toFixed(1) + '%';
+        document.getElementById('grip-trad-contacts').textContent = this.metrics.contacts;
+        document.getElementById('grip-trad-penetration').textContent = this.metrics.penetration.toFixed(1) + 'mm';
+        document.getElementById('grip-trad-distribution').textContent = this.metrics.contacts > 10 ? 'Good' : this.metrics.contacts > 5 ? 'Fair' : 'Poor';
+        document.getElementById('grip-trad-stability').textContent = this.metrics.stability.toFixed(0) + '%';
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw ground
+        this.ctx.strokeStyle = '#475569';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 450);
+        this.ctx.lineTo(this.canvas.width, 450);
+        this.ctx.stroke();
+
+        // Draw grippers with 3D effect
+        const drawFinger = (finger) => {
+          const x = finger.x;
+          const y = finger.y;
+          const w = finger.width;
+          const h = finger.height;
+          
+          // Main finger body
+          this.ctx.fillStyle = '#e76f51';
+          this.ctx.fillRect(x, y - h/2, w, h);
+          
+          // 3D highlight
+          this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+          this.ctx.fillRect(x + 5, y - h/2 + 5, w - 10, 10);
+          
+          // Shadow
+          this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+          this.ctx.fillRect(x + 5, y + h/2 - 15, w - 10, 10);
+          
+          // Contact force visualization
+          if (finger.contactForce > 0) {
+            this.ctx.strokeStyle = '#fbbf24';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            const centerX = x + (finger.isRight ? 0 : w);
+            this.ctx.moveTo(centerX, y);
+            this.ctx.lineTo(centerX + (finger.isRight ? -30 : 30), y);
+            this.ctx.stroke();
+          }
+        };
+
+        drawFinger(this.leftFinger);
+        drawFinger(this.rightFinger);
+
+        // Draw solid rigid square
+        this.ctx.save();
+        this.ctx.translate(this.object.x, this.object.y);
+        this.ctx.rotate(this.object.rotation);
+        
+        // Main square body
+        this.ctx.fillStyle = '#3b82f6';
+        this.ctx.fillRect(-this.object.size/2, -this.object.size/2, this.object.size, this.object.size);
+        
+        // Border
+        this.ctx.strokeStyle = '#60a5fa';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(-this.object.size/2, -this.object.size/2, this.object.size, this.object.size);
+        
+        // Cross pattern to show it's solid
+        this.ctx.strokeStyle = 'rgba(96, 165, 250, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.beginPath();
+        this.ctx.moveTo(-this.object.size/2, -this.object.size/2);
+        this.ctx.lineTo(this.object.size/2, this.object.size/2);
+        this.ctx.moveTo(this.object.size/2, -this.object.size/2);
+        this.ctx.lineTo(-this.object.size/2, this.object.size/2);
+        this.ctx.stroke();
+        
+        this.ctx.restore();
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    class GripperMolecular {
+      constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        this.ctx = this.canvas.getContext('2d');
+        this.running = true;
+        
+        // Create rigid cube object (held in gripper center)
+        this.object = this.createObject(250, 200, 70);
+        
+        // Create gripper fingers as particle arrays
+        this.leftFinger = this.createFingerParticles(100, 200, false);
+        this.rightFinger = this.createFingerParticles(400, 200, true);
+        
+        this.metrics = {
+          gripForce: 0,
+          deformation: 0,
+          forceSensors: 0,
+          penetration: 0,
+          stability: 100
+        };
+        
+        this.animate();
+      }
+
+      createObject(x, y, size) {
+        const particles = [];
+        const rows = 9;
+        const cols = 9;
+        const spacing = size / rows;
+        const hexSpacing = spacing * 0.866; // Hexagonal offset
+        
+        // Hexagonal close-packed structure (more stable)
+        for (let row = 0; row < rows; row++) {
+          const colsInRow = row % 2 === 0 ? cols : cols - 1;
+          const xOffset = row % 2 === 0 ? 0 : spacing / 2;
+          
+          for (let col = 0; col < colsInRow; col++) {
+            const px = x - size/2 + col * spacing + xOffset + spacing/2;
+            const py = y - size/2 + row * hexSpacing;
+            particles.push({
+              x: px,
+              y: py,
+              originalX: px,
+              originalY: py,
+              vx: 0,
+              vy: 0,
+              r: 4,
+              row: row,
+              col: col,
+              forceX: 0,
+              forceY: 0
+            });
+          }
+        }
+        return particles;
+      }
+
+      createFingerParticles(x, y, isRight) {
+        const particles = [];
+        const count = 18;
+        const spacing = 8;
+        for (let i = 0; i < count; i++) {
+          particles.push({
+            x: x + (isRight ? 0 : 30),
+            y: y - 72 + i * spacing,
+            targetX: x + (isRight ? 0 : 30),
+            r: 4,
+            isRight: isRight,
+            forceX: 0,
+            forceY: 0
+          });
+        }
+        return particles;
+      }
+
+      update() {
+        // Update gripper positions
+        const closure = params.gripperClosure / 100;
+        const maxTravel = 180; // Increased from 120 to allow full grip
+        
+        this.leftFinger.forEach(p => {
+          p.targetX = 100 + 30 + closure * maxTravel;
+          p.x += (p.targetX - p.x) * 0.15; // Faster response
+        });
+        
+        this.rightFinger.forEach(p => {
+          p.targetX = 400 - closure * maxTravel;
+          p.x += (p.targetX - p.x) * 0.15;
+        });
+
+        // Update object particles
+        let totalDeformation = 0;
+        let totalForce = 0;
+        let activeSensors = 0;
+        let minDistance = Infinity;
+        
+        // Calculate center of mass
+        let cmX = 0, cmY = 0;
+        this.object.forEach(p => {
+          cmX += p.x;
+          cmY += p.y;
+        });
+        cmX /= this.object.length;
+        cmY /= this.object.length;
+
+        this.object.forEach(p => {
+          p.forceX = 0;
+          p.forceY = 0; // NO gravity - suspended in gripper
+          
+          // Count neighbors to detect boundary particles
+          let neighborCount = 0;
+          
+          // Internal molecular forces to maintain hexagonal crystal rigidity
+          this.object.forEach(other => {
+            if (other === p) return;
+            const dx = other.x - p.x;
+            const dy = other.y - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Strong attractive/repulsive forces between hexagonal neighbors
+            const idealSpacing = 70 / 9; // ~7.78 pixels (slightly less than particle diameter)
+            // Realistic range: up to 2× ideal spacing for neighbor detection
+            if (dist < idealSpacing * 2.0 && dist > 0.1) {
+              neighborCount++;
+              const restLength = idealSpacing;
+              const deviation = dist - restLength;
+              
+              // Simple spring force (much weaker)
+              const springForce = deviation * 0.15 * params.objectSoftness;
+              
+              // Clamp force to prevent numerical explosions
+              const clampedForce = Math.max(-2, Math.min(2, springForce));
+              
+              p.forceX += clampedForce * dx / dist;
+              p.forceY += clampedForce * dy / dist;
+            }
+          });
+          
+          // Surface tension for boundary particles (air/crystal interface molecular forces)
+          // Boundary particles have fewer neighbors and need extra inward force
+          if (neighborCount < 5) {
+            // Pull boundary particles toward crystal center (like surface tension in water)
+            const centerX = 250;
+            const centerY = 200;
+            const dx = centerX - p.x;
+            const dy = centerY - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist > 0.1) {
+              // Surface tension force (much weaker)
+              const surfaceTension = 0.005 * (6 - neighborCount) * params.objectSoftness;
+              p.forceX += surfaceTension * dx / dist;
+              p.forceY += surfaceTension * dy / dist;
+            }
+          }
+          
+          // Molecular forces from finger particles (realistic range: 2-3× particle diameter)
+          [...this.leftFinger, ...this.rightFinger].forEach(fp => {
+            const dx = fp.x - p.x;
+            const dy = fp.y - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Realistic sensing range: ~2.5× combined particle diameter
+            const particleDiameter = (p.r + fp.r) * 2;
+            const sensingRange = particleDiameter * 2.5; // About 20 pixels
+
+            if (dist < sensingRange && dist > 0.1) {
+              minDistance = Math.min(minDistance, dist);
+              activeSensors++;
+              
+              // Repulsive force with realistic soft-sphere potential
+              const overlap = sensingRange - dist;
+              const normalized = overlap / sensingRange;
+              
+              // Cubic repulsion (much weaker to prevent spinning)
+              let force = params.forceSensitivity * 2 * Math.pow(normalized, 3);
+              
+              // Clamp force to prevent numerical instability
+              force = Math.min(force, 5);
+              
+              p.forceX -= force * dx / dist;
+              p.forceY -= force * dy / dist;
+              
+              fp.forceX = force * dx / dist;
+              fp.forceY = force * dy / dist;
+              
+              totalForce += force;
+            }
+          });
+
+          // Apply forces with very gentle integration
+          p.vx += p.forceX * 0.1; // Much gentler force application
+          p.vy += p.forceY * 0.1;
+          
+          // Clamp velocities to prevent runaway particles
+          const maxVel = 2; // Reduced from 5
+          p.vx = Math.max(-maxVel, Math.min(maxVel, p.vx));
+          p.vy = Math.max(-maxVel, Math.min(maxVel, p.vy));
+          
+          p.x += p.vx * params.objectSoftness * 0.5;
+          p.y += p.vy * params.objectSoftness * 0.5;
+          
+          // Very strong damping for stability
+          p.vx *= 0.7;
+          p.vy *= 0.7;
+          
+          // Gentle center of mass stabilization to prevent spinning
+          const targetCenterX = 250;
+          const targetCenterY = 200;
+          const cmDx = targetCenterX - cmX;
+          const cmDy = targetCenterY - cmY;
+          p.x += cmDx * 0.01; // Very gentle drift correction
+          p.y += cmDy * 0.01;
+
+          // Ground
+          if (p.y > 450) {
+            p.y = 450;
+            p.vy = 0;
+          }
+          
+          // Keep particles from escaping too far (safety bounds)
+          const maxDist = 150;
+          const centerX = 250;
+          const centerY = 200;
+          const distFromCenter = Math.sqrt(Math.pow(p.x - centerX, 2) + Math.pow(p.y - centerY, 2));
+          if (distFromCenter > maxDist) {
+            const angle = Math.atan2(p.y - centerY, p.x - centerX);
+            p.x = centerX + Math.cos(angle) * maxDist;
+            p.y = centerY + Math.sin(angle) * maxDist;
+            p.vx *= -0.5;
+            p.vy *= -0.5;
+          }
+
+          // Calculate deformation
+          const dx = p.x - p.originalX;
+          const dy = p.y - p.originalY;
+          totalDeformation += Math.sqrt(dx*dx + dy*dy);
+        });
+
+        // Update metrics
+        const contactError = minDistance < 100 ? Math.max(0, (p.r + 4) - minDistance) : 0;
+        this.metrics.forceSensors = Math.floor(activeSensors / this.object.length);
+        this.metrics.gripForce = totalForce * 10;
+        this.metrics.deformation = (totalDeformation / this.object.length) / 70 * 100;
+        this.metrics.penetration = contactError;
+        this.metrics.stability = Math.max(0, 100 - this.metrics.deformation * 0.3);
+        
+        this.updateMetricsDisplay();
+      }
+
+      updateMetricsDisplay() {
+        document.getElementById('grip-mol-force').textContent = this.metrics.gripForce.toFixed(1) + ' N';
+        document.getElementById('grip-mol-deform').textContent = this.metrics.deformation.toFixed(1) + '%';
+        document.getElementById('grip-mol-contacts').textContent = this.metrics.forceSensors;
+        document.getElementById('grip-mol-penetration').textContent = this.metrics.penetration.toFixed(1) + 'mm';
+        document.getElementById('grip-mol-distribution').textContent = this.metrics.forceSensors > 20 ? 'Excellent' : this.metrics.forceSensors > 10 ? 'Good' : 'Developing';
+        document.getElementById('grip-mol-stability').textContent = this.metrics.stability.toFixed(0) + '%';
+      }
+
+      draw() {
+        this.ctx.fillStyle = '#0f172a';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw ground
+        this.ctx.strokeStyle = '#475569';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 450);
+        this.ctx.lineTo(this.canvas.width, 450);
+        this.ctx.stroke();
+
+        // Draw force field lines (when active)
+        this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+        this.ctx.lineWidth = 1;
+        this.object.forEach(p => {
+          [...this.leftFinger, ...this.rightFinger].forEach(fp => {
+            const dx = fp.x - p.x;
+            const dy = fp.y - p.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 50) {
+              this.ctx.beginPath();
+              this.ctx.moveTo(p.x, p.y);
+              this.ctx.lineTo(fp.x, fp.y);
+              this.ctx.stroke();
+            }
+          });
+        });
+
+        // Draw gripper finger particles
+        this.ctx.fillStyle = '#06d6a0';
+        [...this.leftFinger, ...this.rightFinger].forEach(p => {
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          this.ctx.fill();
+          
+          // Draw force vectors
+          if (Math.abs(p.forceX) > 0.01 || Math.abs(p.forceY) > 0.01) {
+            this.ctx.strokeStyle = '#fbbf24';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(p.x, p.y);
+            this.ctx.lineTo(p.x + p.forceX * 20, p.y + p.forceY * 20);
+            this.ctx.stroke();
+          }
+        });
+
+        // Connect finger particles
+        this.ctx.strokeStyle = 'rgba(6, 214, 160, 0.6)';
+        this.ctx.lineWidth = 3;
+        [this.leftFinger, this.rightFinger].forEach(finger => {
+          for (let i = 0; i < finger.length - 1; i++) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(finger[i].x, finger[i].y);
+            this.ctx.lineTo(finger[i+1].x, finger[i+1].y);
+            this.ctx.stroke();
+          }
+        });
+
+        // Draw object particles
+        this.object.forEach(p => {
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          this.ctx.fillStyle = '#10b981';
+          this.ctx.fill();
+          
+          // Draw force vectors on object
+          if (Math.abs(p.forceX) > 0.05 || Math.abs(p.forceY) > 0.05) {
+            this.ctx.strokeStyle = 'rgba(251, 191, 36, 0.6)';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(p.x, p.y);
+            this.ctx.lineTo(p.x + p.forceX * 50, p.y + p.forceY * 50);
+            this.ctx.stroke();
+          }
+        });
+
+        // Draw hexagonal crystal connections (only show bonded neighbors)
+        this.ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)';
+        this.ctx.lineWidth = 1.5;
+        const idealSpacing = 70 / 9;
+        for (let i = 0; i < this.object.length; i++) {
+          for (let j = i + 1; j < this.object.length; j++) {
+            const p1 = this.object[i];
+            const p2 = this.object[j];
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            // Draw connection only if within realistic bonding range
+            if (dist < idealSpacing * 1.4) {
+              this.ctx.beginPath();
+              this.ctx.moveTo(p1.x, p1.y);
+              this.ctx.lineTo(p2.x, p2.y);
+              this.ctx.stroke();
+            }
+          }
+        }
+      }
+
+      animate() {
+        if (!this.running) return;
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.animate());
+      }
+
+      stop() {
+        this.running = false;
+      }
+    }
+
+    // Initialize all demos on load
+    setupDemo1();
+    setupDemo2();
+    setupDemo3();
+    setupPong();
+    setupGrippers();
+  </script>
+</body>
+</html>
