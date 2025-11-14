@@ -3,6 +3,7 @@
 A comparison of traditional and novel molecular force based collision detection in context of graphics. A simple webpage example and demo.
 
 ## Getting Started
+🚀 **[Live Demo](https://kylemath.github.io/collisionDetectionForcefield)** 🚀
 
 ### Prerequisites
 
